@@ -2,37 +2,32 @@
 
 echo -e "$(date +'%Y/%m/%d %H:%M:%S')\t" "$0" "$@"
 
-report_error() {
-    local msg="$1"
-
-    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
-        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
-        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
-    fi
-}
-
-MODULE_ROOT="/usr/lib/modules_trim/$(uname -r)"
-MODULE_GROUP="nvidia-gpu"
-MODULE_VARIANT="nvidia-gpu-kernel-grid"
-DEFAULT_MODULE_VARIANT="nvidia-gpu-proprietary"
-ALT_DIR="${MODULE_ROOT}/alternatives"
-ALT_LINK="${ALT_DIR}/${MODULE_GROUP}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "${SCRIPT_DIR}/common"
 
 main() {
-    mkdir -p "${ALT_DIR}" || {
-        report_error "Failed to create NVIDIA module alternatives directory: ${ALT_DIR}"
+    local module_root
+    local alt_dir
+    local alt_link
+
+    module_root="$(module_root)"
+    alt_dir="$(module_alternatives_dir)"
+    alt_link="$(module_link)"
+
+    mkdir -p "${alt_dir}" || {
+        report_error "Failed to create NVIDIA module alternatives directory: ${alt_dir}"
         return 1
     }
-    rm -f "${MODULE_ROOT}/${MODULE_GROUP}" "${ALT_LINK}" || {
+    rm -f "${module_root}/${MODULE_GROUP}" "${alt_link}" || {
         report_error "Failed to remove old NVIDIA module alternative link"
         return 1
     }
-    ln -s "../${DEFAULT_MODULE_VARIANT}" "${ALT_LINK}" || {
-        report_error "Failed to restore ${ALT_LINK} to ../${DEFAULT_MODULE_VARIANT}"
+    ln -s "../${DEFAULT_MODULE_VARIANT}" "${alt_link}" || {
+        report_error "Failed to restore ${alt_link} to ../${DEFAULT_MODULE_VARIANT}"
         return 1
     }
-    rm -rf "${MODULE_ROOT}/${MODULE_VARIANT}" || {
-        report_error "Failed to remove NVIDIA GRID kernel module directory: ${MODULE_ROOT}/${MODULE_VARIANT}"
+    rm -rf "${module_root}/${MODULE_VARIANT}" || {
+        report_error "Failed to remove NVIDIA GRID kernel module directory: ${module_root}/${MODULE_VARIANT}"
         return 1
     }
 

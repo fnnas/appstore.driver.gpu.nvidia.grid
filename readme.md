@@ -28,6 +28,8 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 - 内核空间驱动包元数据和生命周期脚本：`package_kernel_space/`
 - 用户空间驱动包元数据和生命周期脚本：`package_user_space/`
 
+两个 package 的 `cmd/common` 分别保存各自生命周期脚本复用的变量、日志函数和错误展示函数；它们会随对应 package 一起打包，不依赖另一个 package。
+
 ## Workflow 说明
 
 ### `test_release.yml`
@@ -275,6 +277,16 @@ package_user_space/cmd/main
 ```
 
 该安装流程不会安装 NVIDIA 内核模块，也不会启用 DKMS；它要求 `package_kernel_space` 已经安装并启用了匹配版本的内核空间驱动。
+
+`package_user_space/cmd/uninstall_init` 和 `package_user_space/cmd/upgrade_init` 会调用包内 NVIDIA `.run` 安装器执行静默卸载，命令等价于：
+
+```bash
+./NVIDIA-Linux-x86_64-580.159.03-grid.run \
+  --uninstall \
+  --silent \
+  --no-runlevel-check \
+  --ui=none
+```
 
 ## 错误展示
 

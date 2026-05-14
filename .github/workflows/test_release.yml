@@ -23,7 +23,7 @@ env:
   this_pack_version: "580.159.03-1"
   this_pack_nvidia_driver_version: "580.159.03"
   this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-  this_pack_grid_url: "https://cn.download.nvidia.com/XFree86/Linux-x86_64/580.159.03/NVIDIA-Linux-x86_64-580.159.03.run"
+  this_pack_grid_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
   this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 
 jobs:

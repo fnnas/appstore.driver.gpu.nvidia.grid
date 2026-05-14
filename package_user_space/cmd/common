@@ -1,0 +1,30 @@
+#!/bin/bash
+
+LOG_FILE="${TRIM_PKGVAR:-/tmp}/info.log"
+PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"
+NVIDIA_RUN_FILE="this_pack_grid_run"
+
+log_msg() {
+    local msg="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+}
+
+report_error() {
+    local msg="$1"
+
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
+        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
+    fi
+}
+
+nvidia_run_file_path() {
+    echo "${PACKAGE_BASE}/app/${NVIDIA_RUN_FILE}"
+}

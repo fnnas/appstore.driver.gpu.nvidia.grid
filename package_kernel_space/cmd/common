@@ -1,0 +1,45 @@
+#!/bin/bash
+
+LOG_FILE="${TRIM_PKGVAR:-/tmp}/info.log"
+PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+PROJ_NAME="appstore.driver.gpu.nvidia.ko"
+EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"
+MODULE_GROUP="nvidia-gpu"
+MODULE_VARIANT="nvidia-gpu-kernel-grid"
+DEFAULT_MODULE_VARIANT="nvidia-gpu-proprietary"
+
+log_msg() {
+    local msg="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+}
+
+report_error() {
+    local msg="$1"
+
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
+        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
+    fi
+}
+
+module_root() {
+    echo "/usr/lib/modules_trim/$(uname -r)"
+}
+
+module_install_dir() {
+    echo "$(module_root)/${MODULE_VARIANT}"
+}
+
+module_alternatives_dir() {
+    echo "$(module_root)/alternatives"
+}
+
+module_link() {
+    echo "$(module_alternatives_dir)/${MODULE_GROUP}"
+}

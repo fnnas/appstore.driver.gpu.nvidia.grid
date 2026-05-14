@@ -1,36 +1,23 @@
 #!/bin/bash
 
-LOG_FILE="${TRIM_PKGVAR:-/tmp}/info.log"
-PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-
-EXPECTED_DRIVER_VERSION="580.159.03"
-NVIDIA_RUN_FILE="this_pack_grid_run"
-
-log_msg() {
-    local msg="$1"
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
-    mkdir -p "$(dirname "${LOG_FILE}")"
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
-}
-
-report_error() {
-    local msg="$1"
-
-    mkdir -p "$(dirname "${LOG_FILE}")"
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
-
-    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
-        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
-        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "${SCRIPT_DIR}/common"
 
 kernel_driver_version() {
     if [[ ! -r /proc/driver/nvidia/version ]]; then
         return 1
     fi
 
-    sed -n 's/.*Kernel Module[[:space:]]\+\([0-9.]\+\).*/\1/p' /proc/driver/nvidia/version | head -n 1
+    awk '
+        /Kernel Module/ {
+            for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9]+([.][0-9]+)+$/) {
+                    print $i
+                    exit
+                }
+            }
+        }
+    ' /proc/driver/nvidia/version
 }
 
 check_kernel_driver_version() {
@@ -56,7 +43,7 @@ check_kernel_driver_version() {
 install_user_space_driver() {
     local run_file
 
-    run_file="${PACKAGE_BASE}/app/${NVIDIA_RUN_FILE}"
+    run_file="$(nvidia_run_file_path)"
     if [[ ! -f "${run_file}" ]]; then
         report_error "NVIDIA user space driver installer not found: ${run_file}"
         return 1

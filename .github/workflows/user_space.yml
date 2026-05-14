@@ -52,7 +52,8 @@ jobs:
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/manifest
           sed "s|this_pack_nvidia_driver_url|${{ inputs.this_pack_nvidia_driver_url }}|g" -i ./package_user_space/manifest
           sed "s/this_pack_manifest_platform/${{ inputs.manifest_platform }}/g" -i ./package_user_space/manifest
-          sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/main
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/cmd/common
+          sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/common
 
       - name: Pack app.tgz
         run: |
