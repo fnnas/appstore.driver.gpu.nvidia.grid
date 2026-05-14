@@ -19,6 +19,7 @@ log_msg() {
 report_error() {
     local msg="$1"
 
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
     mkdir -p "$(dirname "${LOG_FILE}")"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
 
@@ -42,4 +43,23 @@ module_alternatives_dir() {
 
 module_link() {
     echo "$(module_alternatives_dir)/${MODULE_GROUP}"
+}
+
+disable_nouveau() {
+    local nouveau_blacklist_conf
+
+    nouveau_blacklist_conf="/etc/modprobe.d/blacklist-nouveau.conf"
+
+    log_msg "Disabling nouveau"
+    mkdir -p "$(dirname "${nouveau_blacklist_conf}")" || {
+        report_error "Failed to create nouveau blacklist config directory: $(dirname "${nouveau_blacklist_conf}")"
+        return 1
+    }
+
+    printf "%s\n" \
+        "blacklist nouveau" \
+        "options nouveau modeset=0" > "${nouveau_blacklist_conf}" || {
+        report_error "Failed to write nouveau blacklist config: ${nouveau_blacklist_conf}"
+        return 1
+    }
 }

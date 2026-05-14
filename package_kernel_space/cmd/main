@@ -146,6 +146,8 @@ install_modules() {
         return 1
     }
 
+    disable_nouveau || return 1
+
     log_msg "Updating initramfs"
     update-initramfs -u || {
         report_error "Failed to update initramfs"

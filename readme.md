@@ -113,7 +113,8 @@ package_kernel_space/cmd/main
 2. 安装 NVIDIA 内核模块
 3. 切换模块 alternatives
 4. 执行 `depmod`
-5. 执行 `update-initramfs -u`
+5. 写入 `/etc/modprobe.d/blacklist-nouveau.conf` 禁用 nouveau
+6. 执行 `update-initramfs -u`
 
 ### Firmware 安装
 
@@ -277,6 +278,14 @@ package_user_space/cmd/main
 ```
 
 该安装流程不会安装 NVIDIA 内核模块，也不会启用 DKMS；它要求 `package_kernel_space` 已经安装并启用了匹配版本的内核空间驱动。
+
+`package_user_space/cmd/main status` 会检查用户空间驱动库是否存在：
+
+```text
+/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.580.159.03
+```
+
+存在时返回 `0`，不存在时返回 `3`。
 
 `package_user_space/cmd/uninstall_init` 和 `package_user_space/cmd/upgrade_init` 会调用包内 NVIDIA `.run` 安装器执行静默卸载，命令等价于：
 

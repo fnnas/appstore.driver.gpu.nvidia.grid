@@ -69,7 +69,15 @@ install_user_space_driver() {
 }
 
 check_status() {
-    check_kernel_driver_version
+    local nvidia_ml_library
+
+    nvidia_ml_library="$(nvidia_ml_library_path)"
+    if [[ -f "${nvidia_ml_library}" ]]; then
+        return 0
+    fi
+
+    report_error "NVIDIA user space driver library not found: ${nvidia_ml_library}"
+    return 1
 }
 
 main() {

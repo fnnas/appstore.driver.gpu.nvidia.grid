@@ -16,6 +16,7 @@ log_msg() {
 report_error() {
     local msg="$1"
 
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
     mkdir -p "$(dirname "${LOG_FILE}")"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
 
@@ -27,4 +28,8 @@ report_error() {
 
 nvidia_run_file_path() {
     echo "${PACKAGE_BASE}/app/${NVIDIA_RUN_FILE}"
+}
+
+nvidia_ml_library_path() {
+    echo "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.${EXPECTED_DRIVER_VERSION}"
 }
