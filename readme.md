@@ -1,4 +1,4 @@
-# appstore.driver.gpu.nvidia.ko
+# appstore.driver.gpu.nvidia.grid
 
 这是一个用于 FN NAS / TRIM 应用包体系的 NVIDIA GPU 内核模块包项目。
 
@@ -16,6 +16,7 @@
 GitHub Actions 会按内核构建目标分别生成最终包：
 
 ```text
+appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz
 appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-570-amd64.tgz
 appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
 appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
@@ -45,7 +46,8 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 关键变量集中在这里维护：
 
 ```yaml
-proj_name: "appstore.driver.gpu.nvidia.ko"
+proj_name: "appstore.driver.gpu.nvidia.grid"
+kernel_module_package_name: "appstore.driver.gpu.nvidia.ko"
 this_pack_version: "580.159.03-1"
 this_pack_nvidia_driver_version: "580.159.03"
 this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
@@ -78,6 +80,7 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 
 当前 matrix 包含：
 
+- `6.18.18-trim-427-amd64`
 - `6.18.18-trim-570-amd64`
 - `6.18.18-trim-587-amd64`
 
@@ -107,6 +110,13 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 ```text
 appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 ```
+
+### `static_checks.yml`
+
+负责静态检查：
+
+- 校验 `readme.md` 和两个 manifest 可以按 UTF-8 读取，且不包含明显乱码标记
+- 对 `package_kernel_space/cmd` 和 `package_user_space/cmd` 下的 shell 脚本执行 `bash -n`
 
 ## 安装逻辑
 
@@ -369,8 +379,7 @@ ${TRIM_TEMP_LOGFILE}
 ## 注意事项
 
 - 本项目会切换系统 NVIDIA GPU 内核模块 alternatives，并安装 NVIDIA firmware。它与飞牛官方应用中心提供的 NVIDIA 驱动应用存在冲突，不建议同时安装或同时启用。
-- 当前 workflow 只构建 `6.18.18-trim-570-amd64` 和 `6.18.18-trim-587-amd64`。
-- `main` 脚本中包含 `427` 的选择逻辑，但当前还没有对应的 `427-amd64` 构建产物。
+- 当前 workflow 构建 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64` 和 `6.18.18-trim-587-amd64`。
 - firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 tgz。
 
 ## 图标与品牌素材说明

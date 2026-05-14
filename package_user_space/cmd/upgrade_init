@@ -5,29 +5,4 @@ echo -e "$(date +'%Y/%m/%d %H:%M:%S')\t" "$0" "$@"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/common"
 
-uninstall_user_space_driver() {
-    local run_file
-
-    run_file="$(nvidia_run_file_path)"
-    if [[ ! -f "${run_file}" ]]; then
-        report_error "NVIDIA user space driver installer not found: ${run_file}"
-        return 1
-    fi
-
-    chmod +x "${run_file}" || {
-        report_error "Failed to make NVIDIA user space driver installer executable: ${run_file}"
-        return 1
-    }
-
-    log_msg "Uninstalling NVIDIA user space driver with ${run_file}"
-    if ! "${run_file}" \
-        --uninstall \
-        --silent \
-        --no-runlevel-check \
-        --ui=none >> "${LOG_FILE}" 2>&1; then
-        report_error "NVIDIA user space driver uninstaller failed; see ${LOG_FILE}"
-        return 1
-    fi
-}
-
-uninstall_user_space_driver
+uninstall_user_space_package

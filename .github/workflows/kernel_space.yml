@@ -7,7 +7,7 @@ permissions:
 on:
   workflow_call:
     inputs:
-      proj_name:
+      kernel_module_package_name:
         required: true
         type: string
         default: "appstore.driver.gpu.nvidia.ko"
@@ -36,6 +36,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - kernel_name: "6.18.18-trim-427-amd64"
+            kernel_ver: "6.18.18-trim"
+            container_image: "makedie/fnos:kernHead-6.18.18-trim-427-amd64"
+            manifest_platform: "x86"
           - kernel_name: "6.18.18-trim-570-amd64"
             kernel_ver: "6.18.18-trim"
             container_image: "makedie/fnos:kernHead-6.18.18-trim-570-amd64"
@@ -72,10 +76,10 @@ jobs:
 
       - name: Copy ko
         run: |
-          mkdir -p app/app/${{ inputs.proj_name }}_${{ env.kernel_name }}
-          find ./kernel -name '*.ko' -type f -print -exec cp {} ./app/app/${{ inputs.proj_name }}_${{ env.kernel_name }}/ \;
-          test -n "$(find ./app/app/${{ inputs.proj_name }}_${{ env.kernel_name }} -name '*.ko' -type f -print -quit)"
-          ls -la ./app/app/${{ inputs.proj_name }}_${{ env.kernel_name }}/
+          mkdir -p app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}
+          find ./kernel -name '*.ko' -type f -print -exec cp {} ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}/ \;
+          test -n "$(find ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }} -name '*.ko' -type f -print -quit)"
+          ls -la ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}/
 
       - name: Restore NVIDIA firmware
         uses: actions/download-artifact@v7

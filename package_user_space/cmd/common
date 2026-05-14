@@ -37,3 +37,60 @@ nvidia_ml_library_path() {
 nvlts_source_dir() {
     echo "${PACKAGE_BASE}/app/nvlts"
 }
+
+systemd_unit_exists() {
+    local unit="$1"
+
+    systemctl list-unit-files --no-legend "${unit}" 2>/dev/null | awk '{print $1}' | grep -Fxq "${unit}"
+}
+
+uninstall_user_space_driver() {
+    local run_file
+
+    run_file="$(nvidia_run_file_path)"
+    if [[ ! -f "${run_file}" ]]; then
+        report_error "NVIDIA user space driver installer not found: ${run_file}"
+        return 1
+    fi
+
+    chmod +x "${run_file}" || {
+        report_error "Failed to make NVIDIA user space driver installer executable: ${run_file}"
+        return 1
+    }
+
+    log_msg "Uninstalling NVIDIA user space driver with ${run_file}"
+    if ! "${run_file}" \
+        --uninstall \
+        --silent \
+        --no-runlevel-check \
+        --ui=none >> "${LOG_FILE}" 2>&1; then
+        report_error "NVIDIA user space driver uninstaller failed; see ${LOG_FILE}"
+        return 1
+    fi
+}
+
+cleanup_nvlts() {
+    log_msg "Cleaning up NVLTS"
+
+    rm -f /etc/systemd/system/nvidia-gridd.service.d/nvlts.conf || {
+        report_error "Failed to remove nvidia-gridd NVLTS drop-in"
+        return 1
+    }
+    rm -rf /opt/nvlts || {
+        report_error "Failed to remove /opt/nvlts"
+        return 1
+    }
+
+    systemctl daemon-reload >> "${LOG_FILE}" 2>&1 || {
+        report_error "Failed to reload systemd; see ${LOG_FILE}"
+        return 1
+    }
+
+    if systemd_unit_exists nvidia-gridd.service; then
+        systemctl restart nvidia-gridd >> "${LOG_FILE}" 2>&1 || log_msg "Restart nvidia-gridd failed after NVLTS cleanup"
+    fi
+}
+
+uninstall_user_space_package() {
+    uninstall_user_space_driver && cleanup_nvlts
+}

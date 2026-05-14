@@ -19,7 +19,8 @@ on:
         default: false
 
 env:
-  proj_name: "appstore.driver.gpu.nvidia.ko"
+  proj_name: "appstore.driver.gpu.nvidia.grid"
+  kernel_module_package_name: "appstore.driver.gpu.nvidia.ko"
   this_pack_version: "580.159.03-1"
   this_pack_nvidia_driver_version: "580.159.03"
   this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
@@ -32,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       proj_name: ${{ steps.vars.outputs.proj_name }}
+      kernel_module_package_name: ${{ steps.vars.outputs.kernel_module_package_name }}
       this_pack_version: ${{ steps.vars.outputs.this_pack_version }}
       this_pack_nvidia_driver_version: ${{ steps.vars.outputs.this_pack_nvidia_driver_version }}
       this_pack_nvidia_driver_url: ${{ steps.vars.outputs.this_pack_nvidia_driver_url }}
@@ -43,6 +45,7 @@ jobs:
         id: vars
         run: |
           echo "proj_name=${{ env.proj_name }}" >> "$GITHUB_OUTPUT"
+          echo "kernel_module_package_name=${{ env.kernel_module_package_name }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_version=${{ env.this_pack_version }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_nvidia_driver_version=${{ env.this_pack_nvidia_driver_version }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}" >> "$GITHUB_OUTPUT"
@@ -78,7 +81,7 @@ jobs:
       - setup
       - prepare_driver_package
     with:
-      proj_name: ${{ needs.setup.outputs.proj_name }}
+      kernel_module_package_name: ${{ needs.setup.outputs.kernel_module_package_name }}
       this_pack_version: ${{ needs.setup.outputs.this_pack_version }}
       this_pack_nvidia_driver_version: ${{ needs.setup.outputs.this_pack_nvidia_driver_version }}
       this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
@@ -112,10 +115,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ env.this_pack_version }}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "fnnas.appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}" \
-            --prerelease
+          if gh release view "${{ env.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${{ env.this_pack_version }} already exists, skipping create."
+          else
+            gh release create "${{ env.this_pack_version }}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "fnnas.appstore.driver.gpu.nvidia.grid-${{ env.this_pack_version }}" \
+              --prerelease
+          fi
 
   upload_release_assets:
     if: ${{ inputs.make_release }}
@@ -126,6 +133,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-427-amd64"
           - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-570-amd64"
           - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
@@ -146,7 +155,7 @@ jobs:
           echo "Uploading release assets..."
           package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
           echo "Uploading ${package_name}"
-          gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}"
+          gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
           echo "Upload completed!"
 
   verify_release_assets:

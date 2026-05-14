@@ -165,6 +165,11 @@ restart_dependent_services() {
     )
 
     for service in "${services[@]}"; do
+        if ! systemd_unit_exists "${service}"; then
+            log_msg "Skipping missing ${service}"
+            continue
+        fi
+
         log_msg "Restarting ${service}"
         systemctl restart "${service}" >> "${LOG_FILE}" 2>&1 || {
             report_error "Failed to restart ${service}; see ${LOG_FILE}"

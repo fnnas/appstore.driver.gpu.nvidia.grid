@@ -29,7 +29,7 @@ jobs:
         run: |
           version="${{ inputs.nvlts_version }}"
           if [ -z "${version}" ]; then
-            version="$(curl -fsSL "${PROJECT_API_URL}/releases" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | awk -F "," '{print $1}' | sed 's/"//g;s/,//g;s/ //g;s/^v//')"
+            version="$(curl -fsSL "${PROJECT_API_URL}/releases" | python3 -c 'import json, sys; data = json.load(sys.stdin); print(data[0]["tag_name"].removeprefix("v") if data else "")')"
           fi
           if [ -z "${version}" ]; then
             echo "Unable to resolve NVLTS version" >&2
