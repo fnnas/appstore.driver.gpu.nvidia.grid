@@ -2,7 +2,7 @@
 
 echo -e "$(date +'%Y/%m/%d %H:%M:%S')\t" "$0" "$@"
 
-MODULE_ROOT="/usr/trim/modules/$(uname -r)"
+MODULE_ROOT="/usr/lib/modules_trim/$(uname -r)"
 MODULE_GROUP="nvidia-gpu"
 DEFAULT_MODULE_VARIANT="nvidia-gpu-proprietary"
 ALT_DIR="${MODULE_ROOT}/alternatives"
@@ -11,5 +11,8 @@ ALT_LINK="${ALT_DIR}/${MODULE_GROUP}"
 mkdir -p "${ALT_DIR}"
 rm -f "${MODULE_ROOT}/${MODULE_GROUP}" "${ALT_LINK}"
 ln -s "../${DEFAULT_MODULE_VARIANT}" "${ALT_LINK}"
+
+depmod
+update-initramfs -u
 
 exit 0

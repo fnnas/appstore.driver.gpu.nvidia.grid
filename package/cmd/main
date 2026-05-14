@@ -62,7 +62,7 @@ kernel_package_version() {
 }
 
 module_root() {
-    echo "/usr/trim/modules/$(uname -r)"
+    echo "/usr/lib/modules_trim/$(uname -r)"
 }
 
 module_install_dir() {
@@ -152,6 +152,9 @@ install_modules() {
     ln -s "../${MODULE_VARIANT}" "${alt_link}"
     log_msg "Linked ${alt_link} -> ../${MODULE_VARIANT}"
 
+    log_msg "Updating module dependencies"
+    depmod
+
     log_msg "Updating initramfs"
     update-initramfs -u
 }
@@ -180,20 +183,32 @@ install_firmware() {
 
 check_status() {
     local module_file
+    local firmware_dir
     local version
 
     module_file="$(module_link)/nvidia.ko"
+    firmware_dir="$(firmware_install_dir)"
     version="$(module_version "${module_file}")" || {
         echo "NVIDIA module not installed at ${module_file}"
         return 1
     }
 
-    if [[ "${version}" == "${EXPECTED_DRIVER_VERSION}" ]]; then
-        return 0
+    if [[ "${version}" != "${EXPECTED_DRIVER_VERSION}" ]]; then
+        echo "Unexpected NVIDIA module version: ${version}; expected: ${EXPECTED_DRIVER_VERSION}"
+        return 1
     fi
 
-    echo "Unexpected NVIDIA module version: ${version}; expected: ${EXPECTED_DRIVER_VERSION}"
-    return 1
+    if [[ ! -d "${firmware_dir}" ]]; then
+        echo "NVIDIA firmware directory not found: ${firmware_dir}"
+        return 1
+    fi
+
+    if ! find "${firmware_dir}" -mindepth 1 -type f -print -quit | grep -q .; then
+        echo "NVIDIA firmware files not found in ${firmware_dir}"
+        return 1
+    fi
+
+    return 0
 }
 
 case "$1" in
