@@ -16,6 +16,18 @@ log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
 }
 
+report_error() {
+    local msg="$1"
+
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
+        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
+    fi
+}
+
 kernel_arch() {
     case "$(uname -m)" in
     x86_64 | amd64)
@@ -41,12 +53,12 @@ kernel_package_version() {
     local build_tag
 
     if [[ "${kernel_ver}" != "${SUPPORTED_KERNEL_VER}" ]]; then
-        log_msg "Unsupported kernel version: ${kernel_ver}; supported: ${SUPPORTED_KERNEL_VER}"
+        report_error "Unsupported kernel version: ${kernel_ver}; supported: ${SUPPORTED_KERNEL_VER}"
         return 1
     fi
 
     if [[ ! "${build_num}" =~ ^[0-9]+$ ]]; then
-        log_msg "Unsupported kernel build number for ${kernel_ver}: ${build_num}"
+        report_error "Unsupported kernel build number for ${kernel_ver}: ${build_num}"
         return 1
     fi
 
@@ -101,7 +113,7 @@ source_module_dir() {
     local package_version
 
     arch="$(kernel_arch)" || {
-        log_msg "Unsupported architecture: $(uname -m)"
+        report_error "Unsupported architecture: $(uname -m)"
         return 1
     }
 
@@ -124,39 +136,60 @@ install_modules() {
     alt_link="$(module_link)"
 
     if [[ ! -d "${src_dir}" ]]; then
-        log_msg "NVIDIA kernel module directory not found: ${src_dir}"
+        report_error "NVIDIA kernel module directory not found: ${src_dir}"
         return 1
     fi
 
     if [[ ! -f "${src_dir}/nvidia.ko" ]]; then
-        log_msg "nvidia.ko not found in ${src_dir}"
+        report_error "nvidia.ko not found in ${src_dir}"
         return 1
     fi
 
     installed_version="$(module_version "${src_dir}/nvidia.ko")" || {
-        log_msg "Unable to read NVIDIA module version from ${src_dir}/nvidia.ko"
+        report_error "Unable to read NVIDIA module version from ${src_dir}/nvidia.ko"
         return 1
     }
 
     if [[ "${installed_version}" != "${EXPECTED_DRIVER_VERSION}" ]]; then
-        log_msg "Unexpected NVIDIA module version in package: ${installed_version}; expected: ${EXPECTED_DRIVER_VERSION}"
+        report_error "Unexpected NVIDIA module version in package: ${installed_version}; expected: ${EXPECTED_DRIVER_VERSION}"
         return 1
     fi
 
     log_msg "Installing NVIDIA modules from ${src_dir} to ${install_dir}"
-    rm -rf "${install_dir}"
-    mkdir -p "${install_dir}" "${alt_dir}"
-    cp -a "${src_dir}/." "${install_dir}/"
+    rm -rf "${install_dir}" || {
+        report_error "Failed to remove old NVIDIA module directory: ${install_dir}"
+        return 1
+    }
+    mkdir -p "${install_dir}" "${alt_dir}" || {
+        report_error "Failed to create NVIDIA module directories: ${install_dir}, ${alt_dir}"
+        return 1
+    }
+    cp -a "${src_dir}/." "${install_dir}/" || {
+        report_error "Failed to copy NVIDIA modules from ${src_dir} to ${install_dir}"
+        return 1
+    }
 
-    rm -f "$(module_root)/${MODULE_GROUP}" "${alt_link}"
-    ln -s "../${MODULE_VARIANT}" "${alt_link}"
+    rm -f "$(module_root)/${MODULE_GROUP}" "${alt_link}" || {
+        report_error "Failed to remove old NVIDIA module alternative link"
+        return 1
+    }
+    ln -s "../${MODULE_VARIANT}" "${alt_link}" || {
+        report_error "Failed to link ${alt_link} to ../${MODULE_VARIANT}"
+        return 1
+    }
     log_msg "Linked ${alt_link} -> ../${MODULE_VARIANT}"
 
     log_msg "Updating module dependencies"
-    depmod
+    depmod || {
+        report_error "Failed to update module dependencies with depmod"
+        return 1
+    }
 
     log_msg "Updating initramfs"
-    update-initramfs -u
+    update-initramfs -u || {
+        report_error "Failed to update initramfs"
+        return 1
+    }
 }
 
 install_firmware() {
@@ -167,18 +200,24 @@ install_firmware() {
     install_dir="$(firmware_install_dir)"
 
     if [[ ! -d "${src_dir}" ]]; then
-        log_msg "NVIDIA firmware directory not found: ${src_dir}"
+        report_error "NVIDIA firmware directory not found: ${src_dir}"
         return 1
     fi
 
     if ! find "${src_dir}" -mindepth 1 -type f -print -quit | grep -q .; then
-        log_msg "NVIDIA firmware files not found in ${src_dir}"
+        report_error "NVIDIA firmware files not found in ${src_dir}"
         return 1
     fi
 
     log_msg "Installing NVIDIA firmware from ${src_dir} to ${install_dir}"
-    mkdir -p "${install_dir}"
-    cp -a "${src_dir}/." "${install_dir}/"
+    mkdir -p "${install_dir}" || {
+        report_error "Failed to create NVIDIA firmware directory: ${install_dir}"
+        return 1
+    }
+    cp -a "${src_dir}/." "${install_dir}/" || {
+        report_error "Failed to copy NVIDIA firmware from ${src_dir} to ${install_dir}"
+        return 1
+    }
 }
 
 check_status() {
@@ -189,45 +228,50 @@ check_status() {
     module_file="$(module_link)/nvidia.ko"
     firmware_dir="$(firmware_install_dir)"
     version="$(module_version "${module_file}")" || {
-        echo "NVIDIA module not installed at ${module_file}"
+        report_error "NVIDIA module not installed at ${module_file}"
         return 1
     }
 
     if [[ "${version}" != "${EXPECTED_DRIVER_VERSION}" ]]; then
-        echo "Unexpected NVIDIA module version: ${version}; expected: ${EXPECTED_DRIVER_VERSION}"
+        report_error "Unexpected NVIDIA module version: ${version}; expected: ${EXPECTED_DRIVER_VERSION}"
         return 1
     fi
 
     if [[ ! -d "${firmware_dir}" ]]; then
-        echo "NVIDIA firmware directory not found: ${firmware_dir}"
+        report_error "NVIDIA firmware directory not found: ${firmware_dir}"
         return 1
     fi
 
     if ! find "${firmware_dir}" -mindepth 1 -type f -print -quit | grep -q .; then
-        echo "NVIDIA firmware files not found in ${firmware_dir}"
+        report_error "NVIDIA firmware files not found in ${firmware_dir}"
         return 1
     fi
 
     return 0
 }
 
-case "$1" in
-start)
-    uname -a
-    log_msg "kernel_info $(uname -r) $(kernel_build_num)"
-    install_firmware && install_modules
-    ;;
-stop)
-    log_msg "Stop requested; module alternative link is restored by uninstall_init or upgrade_init"
-    ;;
-status)
-    if check_status; then
-        exit 0
-    else
-        exit 3
-    fi
-    ;;
-*)
-    exit 1
-    ;;
-esac
+main() {
+    case "$1" in
+    start)
+        uname -a
+        log_msg "kernel_info $(uname -r) $(kernel_build_num)"
+        install_firmware && install_modules
+        ;;
+    stop)
+        log_msg "Stop requested; module alternative link is restored by uninstall_init or upgrade_init"
+        ;;
+    status)
+        if check_status; then
+            return 0
+        else
+            return 3
+        fi
+        ;;
+    *)
+        report_error "Unsupported command: ${1:-}"
+        return 1
+        ;;
+    esac
+}
+
+main "$@"

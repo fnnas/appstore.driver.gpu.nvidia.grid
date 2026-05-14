@@ -1,5 +1,5 @@
 #!/bin/bash
 
-### This script is called before the user upgrades the application.
+echo -e "$(date +'%Y/%m/%d %H:%M:%S')\t" "$0" "$@"
 
 exit 0

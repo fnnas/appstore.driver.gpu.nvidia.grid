@@ -15,6 +15,10 @@ on:
         required: true
         type: string
         default: "nvidia-grid-firmware"
+      runfile_artifact:
+        required: true
+        type: string
+        default: "nvidia-grid-runfile"
       this_pack_grid_url:
         required: true
         type: string
@@ -60,3 +64,9 @@ jobs:
         with:
           name: ${{ inputs.firmware_artifact }}
           path: drvpkg/firmware
+
+      - name: Upload NVIDIA runfile
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.runfile_artifact }}
+          path: downloads/${{ inputs.this_pack_grid_run }}

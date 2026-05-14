@@ -1,0 +1,71 @@
+name: User Space
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  workflow_call:
+    inputs:
+      this_pack_version:
+        required: true
+        type: string
+      this_pack_nvidia_driver_version:
+        required: true
+        type: string
+      this_pack_nvidia_driver_url:
+        required: true
+        type: string
+      this_pack_grid_run:
+        required: true
+        type: string
+      runfile_artifact:
+        required: true
+        type: string
+        default: "nvidia-grid-runfile"
+      manifest_platform:
+        required: true
+        type: string
+        default: "x86"
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Restore NVIDIA runfile
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.runfile_artifact }}
+          path: app/app/
+
+      - name: Normalize NVIDIA runfile name
+        run: |
+          test -f "app/app/${{ inputs.this_pack_grid_run }}"
+          chmod +x "app/app/${{ inputs.this_pack_grid_run }}"
+
+      - name: Update package manifest
+        run: |
+          sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_user_space/manifest
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/manifest
+          sed "s|this_pack_nvidia_driver_url|${{ inputs.this_pack_nvidia_driver_url }}|g" -i ./package_user_space/manifest
+          sed "s/this_pack_manifest_platform/${{ inputs.manifest_platform }}/g" -i ./package_user_space/manifest
+          sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/main
+
+      - name: Pack app.tgz
+        run: |
+          cd app/
+          tar zcvf app.tgz app ui
+          mv app.tgz ../package_user_space/
+
+      - name: Pack package
+        run: |
+          tar zcvf appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz package_user_space
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz
+          path: appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz

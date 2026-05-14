@@ -18,13 +18,15 @@ GitHub Actions 会按内核构建目标分别生成最终包：
 ```text
 appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-570-amd64.tgz
 appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 ```
 
 每个最终包内包含：
 
 - NVIDIA 内核模块：`app/appstore.driver.gpu.nvidia.ko_<内核版本-架构>/`
 - NVIDIA 固件：`app/firmware/`
-- TRIM 应用元数据和生命周期脚本：`package_kernel_space/`
+- 内核空间驱动包元数据和生命周期脚本：`package_kernel_space/`
+- 用户空间驱动包元数据和生命周期脚本：`package_user_space/`
 
 ## Workflow 说明
 
@@ -35,6 +37,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
 - 定义项目名、包版本、NVIDIA 驱动下载地址
 - 调用驱动源码准备 workflow
 - 调用 `kernel_space.yml` 完成内核模块编译和 `package_kernel_space` 打包
+- 调用 `user_space.yml` 完成 `package_user_space` 打包
 - 可选创建 GitHub prerelease 并上传产物
 
 关键变量集中在这里维护：
@@ -56,6 +59,7 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 - 执行 `--extract-only --target drvpkg`
 - 将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
 - 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
+- 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile`
 
 ### `kernel_space.yml`
 
@@ -76,6 +80,22 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 - 替换 `package_kernel_space/manifest`
 - 生成 `app.tgz`
 - 按内核版本分别打出最终 `.tgz`
+
+### `user_space.yml`
+
+负责用户空间驱动包的打包。
+
+该 workflow 会：
+
+- 下载 `nvidia-grid-runfile`
+- 将 NVIDIA `.run` 安装包放入 `app/`
+- 替换 `package_user_space/manifest`
+- 生成 `app.tgz`
+- 打出用户空间驱动包：
+
+```text
+appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
+```
 
 ## 安装逻辑
 
@@ -214,6 +234,58 @@ depmod
 update-initramfs -u
 ```
 
+## 用户空间驱动包
+
+用户空间驱动包目录为：
+
+```text
+package_user_space/
+```
+
+安装入口为：
+
+```text
+package_user_space/cmd/main
+```
+
+`start` 会先检查：
+
+```text
+/proc/driver/nvidia/version
+```
+
+确认当前内核空间 NVIDIA 驱动版本为：
+
+```text
+580.159.03
+```
+
+版本匹配后，执行 NVIDIA `.run` 安装包的静默安装。安装命令等价于：
+
+```bash
+./NVIDIA-Linux-x86_64-580.159.03-grid.run \
+  --silent \
+  --no-kernel-modules \
+  --no-dkms \
+  --disable-nouveau \
+  --no-x-check \
+  --no-nouveau-check \
+  --no-questions \
+  --ui=none
+```
+
+该安装流程不会安装 NVIDIA 内核模块，也不会启用 DKMS；它要求 `package_kernel_space` 已经安装并启用了匹配版本的内核空间驱动。
+
+## 错误展示
+
+根据飞牛应用中心脚本规范，启动、卸载或升级过程中发生错误时，脚本会把明确失败原因写入：
+
+```text
+${TRIM_TEMP_LOGFILE}
+```
+
+这样应用中心可以直接展示具体错误，例如内核版本不支持、模块目录缺失、firmware 缺失、驱动版本不匹配、`depmod` 或 `update-initramfs` 执行失败等。失败时脚本返回错误码 `1`；如果没有写入 `TRIM_TEMP_LOGFILE`，应用中心通常只能显示“原因未知”的通用错误。
+
 ## 更新 NVIDIA 驱动时需要同步修改
 
 更新驱动版本时，至少需要检查并修改：
@@ -225,7 +297,7 @@ update-initramfs -u
    - `this_pack_grid_url`
    - `this_pack_grid_run`
 
-2. `package_kernel_space/cmd/main`
+2. `package_kernel_space/cmd/main` 和 `package_user_space/cmd/main`
    - `EXPECTED_DRIVER_VERSION`
 
 3. 如新增内核或架构
