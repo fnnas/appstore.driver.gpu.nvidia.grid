@@ -1,104 +1,214 @@
 #!/bin/bash
 
-LOG_FILE="${TRIM_PKGVAR}/info.log"
-PID_FILE="${TRIM_PKGVAR}/app.pid"
+LOG_FILE="${TRIM_PKGVAR:-/tmp}/info.log"
+PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
-# write the command to start your program here 
-CMD=""
+PROJ_NAME="appstore.driver.gpu.nvidia.ko"
+EXPECTED_DRIVER_VERSION="580.159.03"
+SUPPORTED_KERNEL_VER="6.18.18-trim"
+MODULE_GROUP="nvidia-gpu"
+MODULE_VARIANT="nvidia-gpu-kernel-grid"
 
 log_msg() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
+    local msg="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
 }
 
-start_process() {
-    if status; then
+kernel_arch() {
+    case "$(uname -m)" in
+    x86_64 | amd64)
+        echo "amd64"
+        ;;
+    aarch64 | arm64)
+        echo "arm64"
+        ;;
+    *)
+        return 1
+        ;;
+    esac
+}
+
+kernel_build_num() {
+    uname -v | sed -n 's/.*#\([0-9][0-9]*\).*/\1/p' | head -n 1
+}
+
+kernel_package_version() {
+    local kernel_ver="$1"
+    local build_num="$2"
+    local arch="$3"
+    local build_tag
+
+    if [[ "${kernel_ver}" != "${SUPPORTED_KERNEL_VER}" ]]; then
+        log_msg "Unsupported kernel version: ${kernel_ver}; supported: ${SUPPORTED_KERNEL_VER}"
+        return 1
+    fi
+
+    if [[ ! "${build_num}" =~ ^[0-9]+$ ]]; then
+        log_msg "Unsupported kernel build number for ${kernel_ver}: ${build_num}"
+        return 1
+    fi
+
+    if (( build_num < 570 )); then
+        build_tag="427"
+    elif (( build_num < 587 )); then
+        build_tag="570"
+    else
+        build_tag="587"
+    fi
+
+    echo "${kernel_ver}-${build_tag}-${arch}"
+}
+
+module_root() {
+    echo "/usr/trim/modules/$(uname -r)"
+}
+
+module_install_dir() {
+    echo "$(module_root)/${MODULE_VARIANT}"
+}
+
+module_alternatives_dir() {
+    echo "$(module_root)/alternatives"
+}
+
+module_link() {
+    echo "$(module_alternatives_dir)/${MODULE_GROUP}"
+}
+
+firmware_source_dir() {
+    echo "${PACKAGE_BASE}/app/firmware"
+}
+
+firmware_install_dir() {
+    echo "/usr/lib/firmware/nvidia/${EXPECTED_DRIVER_VERSION}"
+}
+
+module_version() {
+    local module_file="$1"
+
+    if [[ ! -f "${module_file}" ]]; then
+        return 1
+    fi
+
+    modinfo -F version "${module_file}" 2>/dev/null || modinfo "${module_file}" 2>/dev/null | awk '/^version:/ {print $2; exit}'
+}
+
+source_module_dir() {
+    local arch
+    local build_num
+    local package_version
+
+    arch="$(kernel_arch)" || {
+        log_msg "Unsupported architecture: $(uname -m)"
+        return 1
+    }
+
+    build_num="$(kernel_build_num)"
+    package_version="$(kernel_package_version "$(uname -r)" "${build_num}" "${arch}")" || return 1
+
+    echo "${PACKAGE_BASE}/app/${PROJ_NAME}_${package_version}"
+}
+
+install_modules() {
+    local src_dir
+    local install_dir
+    local alt_dir
+    local alt_link
+    local installed_version
+
+    src_dir="$(source_module_dir)" || return 1
+    install_dir="$(module_install_dir)"
+    alt_dir="$(module_alternatives_dir)"
+    alt_link="$(module_link)"
+
+    if [[ ! -d "${src_dir}" ]]; then
+        log_msg "NVIDIA kernel module directory not found: ${src_dir}"
+        return 1
+    fi
+
+    if [[ ! -f "${src_dir}/nvidia.ko" ]]; then
+        log_msg "nvidia.ko not found in ${src_dir}"
+        return 1
+    fi
+
+    installed_version="$(module_version "${src_dir}/nvidia.ko")" || {
+        log_msg "Unable to read NVIDIA module version from ${src_dir}/nvidia.ko"
+        return 1
+    }
+
+    if [[ "${installed_version}" != "${EXPECTED_DRIVER_VERSION}" ]]; then
+        log_msg "Unexpected NVIDIA module version in package: ${installed_version}; expected: ${EXPECTED_DRIVER_VERSION}"
+        return 1
+    fi
+
+    log_msg "Installing NVIDIA modules from ${src_dir} to ${install_dir}"
+    rm -rf "${install_dir}"
+    mkdir -p "${install_dir}" "${alt_dir}"
+    cp -a "${src_dir}/." "${install_dir}/"
+
+    rm -f "$(module_root)/${MODULE_GROUP}" "${alt_link}"
+    ln -s "../${MODULE_VARIANT}" "${alt_link}"
+    log_msg "Linked ${alt_link} -> ../${MODULE_VARIANT}"
+
+    log_msg "Updating initramfs"
+    update-initramfs -u
+}
+
+install_firmware() {
+    local src_dir
+    local install_dir
+
+    src_dir="$(firmware_source_dir)"
+    install_dir="$(firmware_install_dir)"
+
+    if [[ ! -d "${src_dir}" ]]; then
+        log_msg "NVIDIA firmware directory not found: ${src_dir}"
+        return 1
+    fi
+
+    if ! find "${src_dir}" -mindepth 1 -type f -print -quit | grep -q .; then
+        log_msg "NVIDIA firmware files not found in ${src_dir}"
+        return 1
+    fi
+
+    log_msg "Installing NVIDIA firmware from ${src_dir} to ${install_dir}"
+    mkdir -p "${install_dir}"
+    cp -a "${src_dir}/." "${install_dir}/"
+}
+
+check_status() {
+    local module_file
+    local version
+
+    module_file="$(module_link)/nvidia.ko"
+    version="$(module_version "${module_file}")" || {
+        echo "NVIDIA module not installed at ${module_file}"
+        return 1
+    }
+
+    if [[ "${version}" == "${EXPECTED_DRIVER_VERSION}" ]]; then
         return 0
     fi
 
-    log_msg "Starting process ..."
-    # run cmd to start process
-    bash -c "${CMD}" >> ${LOG_FILE} 2>&1 &
-    # write pid to pidfile
-    printf "%s" "$!" > ${PID_FILE}
-    # log_msg "CMD = ${CMD}"
-    # log_msg "pid = $!"
-    return 0
-}
-
-stop_process() {
-    log_msg "Stopping process ..."
-
-    if [ -r "${PID_FILE}" ]; then
-        pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
-        
-        log_msg "pid=${pid}"
-        if ! check_process "${pid}"; then
-            # process not exist, delete pidfile
-            rm -f "${PID_FILE}"
-            log_msg "remove pid file 1"
-            return
-        fi
-
-        log_msg "send TERM signal to PID:${pid}..."
-        kill -TERM ${pid} >> ${LOG_FILE} 2>&1
-
-        local count=0
-        while check_process "${pid}" && [ $count -lt 10 ]; do
-            sleep 1
-            count=$((count + 1))
-            log_msg "waiting process terminal... (${count}s/10s)"
-        done
-
-        if check_process "${pid}"; then
-            log_msg "send KILL signal to PID:${pid}..."
-            kill -KILL "${pid}"
-            sleep 1
-            rm -f "${PID_FILE}"
-        else
-            log_msg "process killed... "
-        fi
-    fi
-
-    return 0
-}
-
-check_process() {
-    local pid=$1
-    if kill -0 "${pid}" 2>/dev/null; then
-        return 0  # process exist
-    else
-        return 1  # process not exist
-    fi
-}
-
-status() {
-    if [ -f "${PID_FILE}" ]; then
-        pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
-        if check_process "${pid}"; then
-            return 0
-        else
-            # Process is not running but pidfile exists - clean it up
-            rm -f "${PID_FILE}"
-        fi    
-    fi
-
+    echo "Unexpected NVIDIA module version: ${version}; expected: ${EXPECTED_DRIVER_VERSION}"
     return 1
 }
 
-case $1 in
+case "$1" in
 start)
-    # run start command. exit 0 if success, exit 1 if failed
-    start_process
+    uname -a
+    log_msg "kernel_info $(uname -r) $(kernel_build_num)"
+    install_firmware && install_modules
     ;;
 stop)
-    # run stop command. exit 0 if success, exit 1 if failed
-    stop_process
+    log_msg "Stop requested; module alternative link is restored by uninstall_init or upgrade_init"
     ;;
 status)
-    # check application status command. exit 0 if running, exit 3 if not running
-    if status; then 
+    if check_status; then
         exit 0
-    else 
+    else
         exit 3
     fi
     ;;

@@ -11,6 +11,10 @@ on:
         required: true
         type: string
         default: "nvidia-grid-kernel-src"
+      firmware_artifact:
+        required: true
+        type: string
+        default: "nvidia-grid-firmware"
       this_pack_grid_url:
         required: true
         type: string
@@ -42,6 +46,7 @@ jobs:
           rm -rf drvpkg nvidia-kernel-src.tgz
           "./downloads/${{ inputs.this_pack_grid_run }}" --extract-only --target drvpkg
           test -d drvpkg/kernel
+          test -d drvpkg/firmware
           tar zcf nvidia-kernel-src.tgz -C drvpkg kernel
 
       - name: Upload NVIDIA kernel source
@@ -49,3 +54,9 @@ jobs:
         with:
           name: ${{ inputs.driver_pkg_artifact }}
           path: nvidia-kernel-src.tgz
+
+      - name: Upload NVIDIA firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.firmware_artifact }}
+          path: drvpkg/firmware

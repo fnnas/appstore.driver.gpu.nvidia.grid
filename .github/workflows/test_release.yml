@@ -46,6 +46,7 @@ jobs:
       - setup
     with:
       driver_pkg_artifact: nvidia-grid-kernel-src
+      firmware_artifact: nvidia-grid-firmware
       this_pack_grid_url: ${{ needs.setup.outputs.this_pack_grid_url }}
       this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
 
@@ -91,6 +92,12 @@ jobs:
         with:
           name: ${{ matrix.kernel_artifact_name }}
           path: app/app/
+
+      - name: Restore NVIDIA firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: nvidia-grid-firmware
+          path: app/app/firmware/
 
       - name: Pack app.tgz
         run: |
