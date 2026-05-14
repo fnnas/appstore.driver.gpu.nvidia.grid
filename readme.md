@@ -43,6 +43,8 @@ appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
 ```yaml
 proj_name: "appstore.driver.gpu.nvidia.ko"
 this_pack_version: "580.159.03-1"
+this_pack_nvidia_driver_version: "580.159.03"
+this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
 this_pack_grid_url: "https://cn.download.nvidia.com/XFree86/Linux-x86_64/580.159.03/NVIDIA-Linux-x86_64-580.159.03.run"
 this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 ```
@@ -196,6 +198,12 @@ EXPECTED_DRIVER_VERSION="580.159.03"
 /usr/lib/modules_trim/$(uname -r)/alternatives/nvidia-gpu -> ../nvidia-gpu-proprietary
 ```
 
+并移除本项目安装的模块目录：
+
+```text
+/usr/lib/modules_trim/$(uname -r)/nvidia-gpu-kernel-grid/
+```
+
 然后执行：
 
 ```bash
@@ -209,6 +217,8 @@ update-initramfs -u
 
 1. `.github/workflows/test_release.yml`
    - `this_pack_version`
+   - `this_pack_nvidia_driver_version`
+   - `this_pack_nvidia_driver_url`
    - `this_pack_grid_url`
    - `this_pack_grid_run`
 
@@ -218,6 +228,17 @@ update-initramfs -u
 3. 如新增内核或架构
    - 新增对应 `kernel-*.yml`
    - 在 `test_release.yml` 的构建和打包矩阵中加入对应目标
+   - 同步维护矩阵中的 `manifest_platform`
+
+`package/manifest` 是模板文件，打包时会由 `test_release.yml` 替换：
+
+- `this_pack_manifest_version`
+- `this_pack_nvidia_driver_version`
+- `this_pack_nvidia_driver_url`
+- `this_pack_manifest_platform`
+- `this_pack_manifest_kernel`
+
+根据应用中心文档，`arch` 字段已废弃；当前只使用 `platform` 字段。`platform` 不支持多个值，当前 amd64 包声明为 `x86`。
 
 ## 注意事项
 
@@ -225,3 +246,11 @@ update-initramfs -u
 - 当前 workflow 只构建 `6.18.18-trim-570-amd64` 和 `6.18.18-trim-587-amd64`。
 - `main` 脚本中包含 `427` 的选择逻辑，但当前还没有对应的 `427-amd64` 构建产物。
 - firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 tgz。
+
+## 图标与品牌素材说明
+
+本项目如使用 NVIDIA 名称、徽标或相关品牌素材，仅用于标识本应用包与 NVIDIA GPU 驱动相关。NVIDIA 徽标和品牌素材的使用应遵守 NVIDIA 官方《徽标和品牌指南》：
+
+https://www.nvidia.cn/about-nvidia/legal-info/logo-brand-usage/
+
+根据该页面说明，NVIDIA 的徽标和其他品牌元素属于 NVIDIA 的品牌资产，未经 NVIDIA 明确书面授权不得使用；使用 NVIDIA 徽标也可能被理解为存在合作伙伴关系或获得 NVIDIA 品牌背书。因此，本项目不声明与 NVIDIA 存在合作、赞助、认证或背书关系。

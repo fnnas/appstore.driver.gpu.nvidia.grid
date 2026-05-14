@@ -21,6 +21,8 @@ on:
 env:
   proj_name: "appstore.driver.gpu.nvidia.ko"
   this_pack_version: "580.159.03-1"
+  this_pack_nvidia_driver_version: "580.159.03"
+  this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
   this_pack_grid_url: "https://cn.download.nvidia.com/XFree86/Linux-x86_64/580.159.03/NVIDIA-Linux-x86_64-580.159.03.run"
   this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 
@@ -81,8 +83,10 @@ jobs:
         include:
           - kernel_package_version: "6.18.18-trim-570-amd64"
             kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-570-amd64"
+            manifest_platform: "x86"
           - kernel_package_version: "6.18.18-trim-587-amd64"
             kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-587-amd64"
+            manifest_platform: "x86"
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6
@@ -98,6 +102,14 @@ jobs:
         with:
           name: nvidia-grid-firmware
           path: app/app/firmware/
+
+      - name: Update package manifest
+        run: |
+          sed "s/this_pack_manifest_version/${{ env.this_pack_version }}/g" -i ./package/manifest
+          sed "s/this_pack_nvidia_driver_version/${{ env.this_pack_nvidia_driver_version }}/g" -i ./package/manifest
+          sed "s|this_pack_nvidia_driver_url|${{ env.this_pack_nvidia_driver_url }}|g" -i ./package/manifest
+          sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package/manifest
+          sed "s/this_pack_manifest_kernel/${{ matrix.kernel_package_version }}/g" -i ./package/manifest
 
       - name: Pack app.tgz
         run: |
