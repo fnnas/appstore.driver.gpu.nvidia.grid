@@ -73,11 +73,13 @@ install_nvlts() {
     local install_dir
     local dropin_dir
     local dropin_file
+    local gridd_conf_writer
 
     src_dir="$(nvlts_source_dir)"
     install_dir="/opt/nvlts"
     dropin_dir="/etc/systemd/system/nvidia-gridd.service.d"
     dropin_file="${dropin_dir}/nvlts.conf"
+    gridd_conf_writer="${SCRIPT_DIR}/write_gridd_conf"
 
     if [[ ! -f "${src_dir}/nvlts" ]]; then
         report_error "NVLTS binary not found: ${src_dir}/nvlts"
@@ -89,8 +91,8 @@ install_nvlts() {
         return 1
     fi
 
-    if [[ ! -f "/etc/nvidia/gridd.conf.template" ]]; then
-        report_error "NVIDIA vGPU gridd.conf.template not found; install NVIDIA user space driver first"
+    if [[ ! -f "${gridd_conf_writer}" ]]; then
+        report_error "gridd.conf writer not found: ${gridd_conf_writer}"
         return 1
     fi
 
@@ -116,12 +118,14 @@ install_nvlts() {
         return 1
     }
 
-    if [[ ! -f "/etc/nvidia/gridd.conf" ]]; then
-        cp "/etc/nvidia/gridd.conf.template" "/etc/nvidia/gridd.conf" || {
-            report_error "Failed to initialize /etc/nvidia/gridd.conf"
-            return 1
-        }
-    fi
+    chmod +x "${gridd_conf_writer}" || {
+        report_error "Failed to make gridd.conf writer executable: ${gridd_conf_writer}"
+        return 1
+    }
+    "${gridd_conf_writer}" >> "${LOG_FILE}" 2>&1 || {
+        report_error "Failed to write /etc/nvidia/gridd.conf; see ${LOG_FILE}"
+        return 1
+    }
 
     mkdir -p "${dropin_dir}" || {
         report_error "Failed to create nvidia-gridd drop-in directory: ${dropin_dir}"

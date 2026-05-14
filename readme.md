@@ -296,6 +296,8 @@ package_user_space/cmd/main
 /etc/systemd/system/nvidia-gridd.service.d/nvlts.conf
 ```
 
+`package_user_space/cmd/write_gridd_conf` 会写入 `/etc/nvidia/gridd.conf`，内容为 vGPU Licensing Daemon 配置模板。
+
 随后会执行 `systemctl daemon-reload`、`systemctl enable nvidia-gridd` 和 `systemctl restart nvidia-gridd`。
 
 用户空间驱动安装成功后会重启以下服务，使系统组件重新加载 NVIDIA 用户空间库：
