@@ -113,6 +113,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ env.this_pack_version }}" \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "fnnas.appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}" \
             --prerelease
 
@@ -145,7 +146,7 @@ jobs:
           echo "Uploading release assets..."
           package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
           echo "Uploading ${package_name}"
-          gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}"
+          gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}"
           echo "Upload completed!"
 
   verify_release_assets:
@@ -159,4 +160,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploaded assets:"
-          gh release view "${{ env.this_pack_version }}" --json assets -q '.assets[].name'
+          gh release view "${{ env.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" --json assets -q '.assets[].name'
