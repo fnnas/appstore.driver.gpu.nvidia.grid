@@ -105,21 +105,21 @@ jobs:
 
       - name: Update package manifest
         run: |
-          sed "s/this_pack_manifest_version/${{ env.this_pack_version }}/g" -i ./package/manifest
-          sed "s/this_pack_nvidia_driver_version/${{ env.this_pack_nvidia_driver_version }}/g" -i ./package/manifest
-          sed "s|this_pack_nvidia_driver_url|${{ env.this_pack_nvidia_driver_url }}|g" -i ./package/manifest
-          sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package/manifest
-          sed "s/this_pack_manifest_kernel/${{ matrix.kernel_package_version }}/g" -i ./package/manifest
+          sed "s/this_pack_manifest_version/${{ env.this_pack_version }}/g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_nvidia_driver_version/${{ env.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/manifest
+          sed "s|this_pack_nvidia_driver_url|${{ env.this_pack_nvidia_driver_url }}|g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_manifest_kernel/${{ matrix.kernel_package_version }}/g" -i ./package_kernel_space/manifest
 
       - name: Pack app.tgz
         run: |
           cd app/
           tar zcvf app.tgz app ui
-          mv app.tgz ../package/
+          mv app.tgz ../package_kernel_space/
 
       - name: Pack package
         run: |
-          tar zcvf appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz package
+          tar zcvf appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz package_kernel_space
 
       - name: Upload package
         uses: actions/upload-artifact@v7

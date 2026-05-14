@@ -24,7 +24,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
 
 - NVIDIA 内核模块：`app/appstore.driver.gpu.nvidia.ko_<内核版本-架构>/`
 - NVIDIA 固件：`app/firmware/`
-- TRIM 应用元数据和生命周期脚本：`package/`
+- TRIM 应用元数据和生命周期脚本：`package_kernel_space/`
 
 ## Workflow 说明
 
@@ -79,7 +79,7 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 安装入口为：
 
 ```text
-package/cmd/main
+package_kernel_space/cmd/main
 ```
 
 `start` 执行顺序：
@@ -160,7 +160,7 @@ ${TRIM_APPDEST}/app/appstore.driver.gpu.nvidia.ko_6.18.18-trim-587-amd64/
 
 ## 状态检查
 
-`package/cmd/main status` 会读取：
+`package_kernel_space/cmd/main status` 会读取：
 
 ```text
 /usr/lib/modules_trim/$(uname -r)/alternatives/nvidia-gpu/nvidia.ko
@@ -185,12 +185,12 @@ EXPECTED_DRIVER_VERSION="580.159.03"
 
 ## 停止、卸载和升级
 
-`package/cmd/main stop` 不恢复 alternatives，只记录日志。
+`package_kernel_space/cmd/main stop` 不恢复 alternatives，只记录日志。
 
 恢复逻辑放在：
 
-- `package/cmd/uninstall_init`
-- `package/cmd/upgrade_init`
+- `package_kernel_space/cmd/uninstall_init`
+- `package_kernel_space/cmd/upgrade_init`
 
 这两个脚本会恢复默认 proprietary 模块：
 
@@ -222,7 +222,7 @@ update-initramfs -u
    - `this_pack_grid_url`
    - `this_pack_grid_run`
 
-2. `package/cmd/main`
+2. `package_kernel_space/cmd/main`
    - `EXPECTED_DRIVER_VERSION`
 
 3. 如新增内核或架构
@@ -230,7 +230,7 @@ update-initramfs -u
    - 在 `test_release.yml` 的构建和打包矩阵中加入对应目标
    - 同步维护矩阵中的 `manifest_platform`
 
-`package/manifest` 是模板文件，打包时会由 `test_release.yml` 替换：
+`package_kernel_space/manifest` 是模板文件，打包时会由 `test_release.yml` 替换：
 
 - `this_pack_manifest_version`
 - `this_pack_nvidia_driver_version`
