@@ -1,0 +1,69 @@
+name: NVLTS
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  workflow_call:
+    inputs:
+      nvlts_version:
+        required: false
+        type: string
+        default: ""
+      nvlts_artifact:
+        required: true
+        type: string
+        default: "nvlts"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    env:
+      PROGRAM: nvlts
+      PROJECT_URL: https://git.collinwebdesigns.de/vgpu/nvlts
+      PROJECT_API_URL: https://git.collinwebdesigns.de/api/v4/projects/vgpu%2Fnvlts
+    steps:
+      - name: Resolve NVLTS version
+        id: vars
+        run: |
+          version="${{ inputs.nvlts_version }}"
+          if [ -z "${version}" ]; then
+            version="$(curl -fsSL "${PROJECT_API_URL}/releases" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | awk -F "," '{print $1}' | sed 's/"//g;s/,//g;s/ //g;s/^v//')"
+          fi
+          if [ -z "${version}" ]; then
+            echo "Unable to resolve NVLTS version" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "archive=${PROGRAM}_${version}_linux_amd64.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Restore NVLTS cache
+        id: cache-nvlts
+        uses: actions/cache@v5
+        with:
+          path: downloads/${{ steps.vars.outputs.archive }}
+          key: nvlts-${{ runner.os }}-${{ steps.vars.outputs.archive }}
+
+      - name: Download NVLTS
+        if: steps.cache-nvlts.outputs.cache-hit != 'true'
+        run: |
+          version="${{ steps.vars.outputs.version }}"
+          arch="amd64"
+          mkdir -p downloads
+          curl -fL -o "downloads/${{ steps.vars.outputs.archive }}" "${PROJECT_URL}/-/releases/v${version}/downloads/${PROGRAM}_${version}_linux_${arch}.tar.gz"
+
+      - name: Extract NVLTS
+        run: |
+          rm -rf nvlts
+          mkdir -p nvlts
+          tar xzf "downloads/${{ steps.vars.outputs.archive }}" -C nvlts
+          test -f nvlts/nvlts
+          test -d nvlts/configs
+          chmod +x nvlts/nvlts
+
+      - name: Upload NVLTS
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.nvlts_artifact }}
+          path: nvlts/

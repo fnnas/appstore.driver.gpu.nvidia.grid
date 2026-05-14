@@ -63,6 +63,15 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 - 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
 - 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile`
 
+### `nvlts.yml`
+
+负责准备 NVLTS 服务文件：
+
+- 默认从 `https://git.collinwebdesigns.de/vgpu/nvlts` 解析最新 release
+- 下载 `nvlts_<version>_linux_amd64.tar.gz`
+- 解包并上传为 `nvlts` artifact
+- `user_space.yml` 会将该 artifact 恢复到 `app/nvlts/` 并打入用户空间驱动包
+
 ### `kernel_space.yml`
 
 负责内核空间驱动包的编译和打包。
@@ -278,6 +287,25 @@ package_user_space/cmd/main
 ```
 
 该安装流程不会安装 NVIDIA 内核模块，也不会启用 DKMS；它要求 `package_kernel_space` 已经安装并启用了匹配版本的内核空间驱动。
+
+用户空间驱动安装成功后会安装 NVLTS：
+
+```text
+/opt/nvlts/nvlts
+/opt/nvlts/configs/
+/etc/systemd/system/nvidia-gridd.service.d/nvlts.conf
+```
+
+随后会执行 `systemctl daemon-reload`、`systemctl enable nvidia-gridd` 和 `systemctl restart nvidia-gridd`。
+
+用户空间驱动安装成功后会重启以下服务，使系统组件重新加载 NVIDIA 用户空间库：
+
+```bash
+systemctl restart sysinfo_service.service
+systemctl restart ai_manager.service
+systemctl restart mediasrv.service
+systemctl restart resmon_service.service
+```
 
 `package_user_space/cmd/main status` 会检查用户空间驱动库是否存在：
 

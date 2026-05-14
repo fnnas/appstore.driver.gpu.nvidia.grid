@@ -33,3 +33,7 @@ nvidia_run_file_path() {
 nvidia_ml_library_path() {
     echo "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.${EXPECTED_DRIVER_VERSION}"
 }
+
+nvlts_source_dir() {
+    echo "${PACKAGE_BASE}/app/nvlts"
+}

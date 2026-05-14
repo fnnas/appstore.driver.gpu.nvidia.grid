@@ -25,6 +25,7 @@ env:
   this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
   this_pack_grid_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
   this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
+  this_pack_nvlts_version: ""
 
 jobs:
   setup:
@@ -36,6 +37,7 @@ jobs:
       this_pack_nvidia_driver_url: ${{ steps.vars.outputs.this_pack_nvidia_driver_url }}
       this_pack_grid_url: ${{ steps.vars.outputs.this_pack_grid_url }}
       this_pack_grid_run: ${{ steps.vars.outputs.this_pack_grid_run }}
+      this_pack_nvlts_version: ${{ steps.vars.outputs.this_pack_nvlts_version }}
     steps:
       - name: Prepare build variables
         id: vars
@@ -46,6 +48,7 @@ jobs:
           echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_grid_url=${{ env.this_pack_grid_url }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_grid_run=${{ env.this_pack_grid_run }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_nvlts_version=${{ env.this_pack_nvlts_version }}" >> "$GITHUB_OUTPUT"
 
   prepare_driver_package:
     uses: ./.github/workflows/nvidia-grid-kernel-src.yml
@@ -58,6 +61,15 @@ jobs:
       runfile_artifact: nvidia-grid-runfile
       this_pack_grid_url: ${{ needs.setup.outputs.this_pack_grid_url }}
       this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
+
+  prepare_nvlts:
+    uses: ./.github/workflows/nvlts.yml
+    secrets: inherit
+    needs:
+      - setup
+    with:
+      nvlts_version: ${{ needs.setup.outputs.this_pack_nvlts_version }}
+      nvlts_artifact: nvlts
 
   package_kernel_space:
     uses: ./.github/workflows/kernel_space.yml
@@ -79,12 +91,14 @@ jobs:
     needs:
       - setup
       - prepare_driver_package
+      - prepare_nvlts
     with:
       this_pack_version: ${{ needs.setup.outputs.this_pack_version }}
       this_pack_nvidia_driver_version: ${{ needs.setup.outputs.this_pack_nvidia_driver_version }}
       this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
       this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
       runfile_artifact: nvidia-grid-runfile
+      nvlts_artifact: nvlts
       manifest_platform: x86
 
   create_release:

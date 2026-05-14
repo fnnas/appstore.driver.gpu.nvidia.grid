@@ -23,6 +23,10 @@ on:
         required: true
         type: string
         default: "nvidia-grid-runfile"
+      nvlts_artifact:
+        required: true
+        type: string
+        default: "nvlts"
       manifest_platform:
         required: true
         type: string
@@ -45,6 +49,18 @@ jobs:
         run: |
           test -f "app/app/${{ inputs.this_pack_grid_run }}"
           chmod +x "app/app/${{ inputs.this_pack_grid_run }}"
+
+      - name: Restore NVLTS
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.nvlts_artifact }}
+          path: app/app/nvlts/
+
+      - name: Verify NVLTS
+        run: |
+          test -f app/app/nvlts/nvlts
+          test -d app/app/nvlts/configs
+          chmod +x app/app/nvlts/nvlts
 
       - name: Update package manifest
         run: |

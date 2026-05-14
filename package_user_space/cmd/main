@@ -68,6 +68,107 @@ install_user_space_driver() {
     fi
 }
 
+install_nvlts() {
+    local src_dir
+    local install_dir
+    local dropin_dir
+    local dropin_file
+
+    src_dir="$(nvlts_source_dir)"
+    install_dir="/opt/nvlts"
+    dropin_dir="/etc/systemd/system/nvidia-gridd.service.d"
+    dropin_file="${dropin_dir}/nvlts.conf"
+
+    if [[ ! -f "${src_dir}/nvlts" ]]; then
+        report_error "NVLTS binary not found: ${src_dir}/nvlts"
+        return 1
+    fi
+
+    if [[ ! -d "${src_dir}/configs" ]]; then
+        report_error "NVLTS configs directory not found: ${src_dir}/configs"
+        return 1
+    fi
+
+    if [[ ! -f "/etc/nvidia/gridd.conf.template" ]]; then
+        report_error "NVIDIA vGPU gridd.conf.template not found; install NVIDIA user space driver first"
+        return 1
+    fi
+
+    log_msg "Installing NVLTS from ${src_dir} to ${install_dir}"
+    mkdir -p "${install_dir}" || {
+        report_error "Failed to create NVLTS install directory: ${install_dir}"
+        return 1
+    }
+    cp -f "${src_dir}/nvlts" "${install_dir}/nvlts" || {
+        report_error "Failed to copy NVLTS binary to ${install_dir}"
+        return 1
+    }
+    rm -rf "${install_dir}/configs" || {
+        report_error "Failed to remove old NVLTS configs directory: ${install_dir}/configs"
+        return 1
+    }
+    cp -a "${src_dir}/configs" "${install_dir}/configs" || {
+        report_error "Failed to copy NVLTS configs to ${install_dir}/configs"
+        return 1
+    }
+    chmod +x "${install_dir}/nvlts" || {
+        report_error "Failed to make NVLTS executable: ${install_dir}/nvlts"
+        return 1
+    }
+
+    if [[ ! -f "/etc/nvidia/gridd.conf" ]]; then
+        cp "/etc/nvidia/gridd.conf.template" "/etc/nvidia/gridd.conf" || {
+            report_error "Failed to initialize /etc/nvidia/gridd.conf"
+            return 1
+        }
+    fi
+
+    mkdir -p "${dropin_dir}" || {
+        report_error "Failed to create nvidia-gridd drop-in directory: ${dropin_dir}"
+        return 1
+    }
+    printf "%s\n" \
+        "[Service]" \
+        "ExecStartPre=/opt/nvlts/nvlts -c /opt/nvlts/configs/vWS.json -g" > "${dropin_file}" || {
+        report_error "Failed to write nvidia-gridd NVLTS drop-in: ${dropin_file}"
+        return 1
+    }
+
+    log_msg "Reloading systemd and restarting nvidia-gridd"
+    systemctl daemon-reload >> "${LOG_FILE}" 2>&1 || {
+        report_error "Failed to reload systemd; see ${LOG_FILE}"
+        return 1
+    }
+    systemctl enable nvidia-gridd >> "${LOG_FILE}" 2>&1 || {
+        report_error "Failed to enable nvidia-gridd; see ${LOG_FILE}"
+        return 1
+    }
+    systemctl restart nvidia-gridd >> "${LOG_FILE}" 2>&1 || {
+        report_error "Failed to restart nvidia-gridd; see ${LOG_FILE}"
+        return 1
+    }
+}
+
+restart_dependent_services() {
+    local service
+    local services
+
+    services=(
+        sysinfo_service.service
+        ai_manager.service
+        mediasrv.service
+        resmon_service.service
+    )
+
+    for service in "${services[@]}"; do
+        log_msg "Restarting ${service}"
+        systemctl restart "${service}" >> "${LOG_FILE}" 2>&1 || {
+            report_error "Failed to restart ${service}; see ${LOG_FILE}"
+            return 1
+        }
+    done
+}
+
 check_status() {
     local nvidia_ml_library
 
@@ -83,7 +184,7 @@ check_status() {
 main() {
     case "$1" in
     start)
-        check_kernel_driver_version && install_user_space_driver
+        check_kernel_driver_version && install_user_space_driver && install_nvlts && restart_dependent_services
         ;;
     stop)
         log_msg "Stop requested; NVIDIA user space driver is not removed by stop"
