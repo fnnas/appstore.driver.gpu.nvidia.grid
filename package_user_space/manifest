@@ -1,0 +1,8 @@
+appname      = appstore.driver.gpu.nvidia.usr
+version      = 1.0.0
+display_name = display-name
+desc         = app-description
+arch         = x86_64
+source       = thirdparty
+maintainer   = your-name
+distributor  = your-name
