@@ -31,6 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       proj_name: ${{ steps.vars.outputs.proj_name }}
+      this_pack_version: ${{ steps.vars.outputs.this_pack_version }}
+      this_pack_nvidia_driver_version: ${{ steps.vars.outputs.this_pack_nvidia_driver_version }}
+      this_pack_nvidia_driver_url: ${{ steps.vars.outputs.this_pack_nvidia_driver_url }}
       this_pack_grid_url: ${{ steps.vars.outputs.this_pack_grid_url }}
       this_pack_grid_run: ${{ steps.vars.outputs.this_pack_grid_run }}
     steps:
@@ -38,6 +41,9 @@ jobs:
         id: vars
         run: |
           echo "proj_name=${{ env.proj_name }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_version=${{ env.this_pack_version }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_nvidia_driver_version=${{ env.this_pack_nvidia_driver_version }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_grid_url=${{ env.this_pack_grid_url }}" >> "$GITHUB_OUTPUT"
           echo "this_pack_grid_run=${{ env.this_pack_grid_run }}" >> "$GITHUB_OUTPUT"
 
@@ -52,85 +58,24 @@ jobs:
       this_pack_grid_url: ${{ needs.setup.outputs.this_pack_grid_url }}
       this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
 
-  build_6-18-18-trim-587:
-    uses: ./.github/workflows/kernel-6.18.18-trim-587-amd64.yml
+  package_kernel_space:
+    uses: ./.github/workflows/kernel_space.yml
     secrets: inherit
     needs:
       - setup
       - prepare_driver_package
     with:
       proj_name: ${{ needs.setup.outputs.proj_name }}
+      this_pack_version: ${{ needs.setup.outputs.this_pack_version }}
+      this_pack_nvidia_driver_version: ${{ needs.setup.outputs.this_pack_nvidia_driver_version }}
+      this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
       driver_pkg_artifact: nvidia-grid-kernel-src
-
-  build_6-18-18-trim-570:
-    uses: ./.github/workflows/kernel-6.18.18-trim-570-amd64.yml
-    secrets: inherit
-    needs:
-      - setup
-      - prepare_driver_package
-    with:
-      proj_name: ${{ needs.setup.outputs.proj_name }}
-      driver_pkg_artifact: nvidia-grid-kernel-src
-
-  pack_app_tgz:
-    needs:
-      - build_6-18-18-trim-570
-      - build_6-18-18-trim-587
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - kernel_package_version: "6.18.18-trim-570-amd64"
-            kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-570-amd64"
-            manifest_platform: "x86"
-          - kernel_package_version: "6.18.18-trim-587-amd64"
-            kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-587-amd64"
-            manifest_platform: "x86"
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v6
-
-      - name: Restore ${{ matrix.kernel_package_version }} artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: ${{ matrix.kernel_artifact_name }}
-          path: app/app/
-
-      - name: Restore NVIDIA firmware
-        uses: actions/download-artifact@v7
-        with:
-          name: nvidia-grid-firmware
-          path: app/app/firmware/
-
-      - name: Update package manifest
-        run: |
-          sed "s/this_pack_manifest_version/${{ env.this_pack_version }}/g" -i ./package_kernel_space/manifest
-          sed "s/this_pack_nvidia_driver_version/${{ env.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/manifest
-          sed "s|this_pack_nvidia_driver_url|${{ env.this_pack_nvidia_driver_url }}|g" -i ./package_kernel_space/manifest
-          sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package_kernel_space/manifest
-          sed "s/this_pack_manifest_kernel/${{ matrix.kernel_package_version }}/g" -i ./package_kernel_space/manifest
-
-      - name: Pack app.tgz
-        run: |
-          cd app/
-          tar zcvf app.tgz app ui
-          mv app.tgz ../package_kernel_space/
-
-      - name: Pack package
-        run: |
-          tar zcvf appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz package_kernel_space
-
-      - name: Upload package
-        uses: actions/upload-artifact@v7
-        with:
-          name: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
-          path: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
+      firmware_artifact: nvidia-grid-firmware
 
   create_release:
     if: ${{ inputs.make_release }}
     needs:
-      - pack_app_tgz
+      - package_kernel_space
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release

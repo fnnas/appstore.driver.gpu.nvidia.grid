@@ -34,8 +34,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
 
 - 定义项目名、包版本、NVIDIA 驱动下载地址
 - 调用驱动源码准备 workflow
-- 调用各内核版本构建 workflow
-- 按内核版本分别打最终包
+- 调用 `kernel_space.yml` 完成内核模块编译和 `package_kernel_space` 打包
 - 可选创建 GitHub prerelease 并上传产物
 
 关键变量集中在这里维护：
@@ -58,21 +57,25 @@ this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
 - 将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
 - 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
 
-### `kernel-*.yml`
+### `kernel_space.yml`
 
-每个 `kernel-*.yml` 只负责一个内核版本的模块编译。
+负责内核空间驱动包的编译和打包。
 
-当前包含：
+当前 matrix 包含：
 
-- `kernel-6.18.18-trim-570-amd64.yml`
-- `kernel-6.18.18-trim-587-amd64.yml`
+- `6.18.18-trim-570-amd64`
+- `6.18.18-trim-587-amd64`
 
-这些 workflow 会：
+该 workflow 会：
 
 - 下载 `nvidia-grid-kernel-src`
 - 解出 `kernel/`
 - 在对应内核头文件容器中执行 `make -j"$(nproc)"`
-- 上传编译出的 `*.ko`
+- 收集编译出的 `*.ko`
+- 下载 `nvidia-grid-firmware`
+- 替换 `package_kernel_space/manifest`
+- 生成 `app.tgz`
+- 按内核版本分别打出最终 `.tgz`
 
 ## 安装逻辑
 
@@ -226,8 +229,8 @@ update-initramfs -u
    - `EXPECTED_DRIVER_VERSION`
 
 3. 如新增内核或架构
-   - 新增对应 `kernel-*.yml`
-   - 在 `test_release.yml` 的构建和打包矩阵中加入对应目标
+   - 在 `kernel_space.yml` 的 matrix 中加入对应目标
+   - 在 `test_release.yml` 的 release 上传矩阵中加入对应最终包目标
    - 同步维护矩阵中的 `manifest_platform`
 
 `package_kernel_space/manifest` 是模板文件，打包时会由 `test_release.yml` 替换：
