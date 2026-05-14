@@ -1,0 +1,51 @@
+name: NVIDIA GRID Kernel Source
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  workflow_call:
+    inputs:
+      driver_pkg_artifact:
+        required: true
+        type: string
+        default: "nvidia-grid-kernel-src"
+      this_pack_grid_url:
+        required: true
+        type: string
+      this_pack_grid_run:
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore NVIDIA driver cache
+        id: cache-grid-driver
+        uses: actions/cache@v4
+        with:
+          path: downloads/${{ inputs.this_pack_grid_run }}
+          key: nvidia-grid-driver-${{ inputs.this_pack_grid_run }}
+
+      - name: Download NVIDIA driver
+        if: steps.cache-grid-driver.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p downloads
+          curl -fL --retry 5 --retry-delay 10 -o "downloads/${{ inputs.this_pack_grid_run }}" "${{ inputs.this_pack_grid_url }}"
+
+      - name: Extract NVIDIA kernel source
+        run: |
+          test -s "downloads/${{ inputs.this_pack_grid_run }}"
+          chmod +x "downloads/${{ inputs.this_pack_grid_run }}"
+          rm -rf drvpkg nvidia-kernel-src.tgz
+          "./downloads/${{ inputs.this_pack_grid_run }}" --extract-only --target drvpkg
+          test -d drvpkg/kernel
+          tar zcf nvidia-kernel-src.tgz -C drvpkg kernel
+
+      - name: Upload NVIDIA kernel source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.driver_pkg_artifact }}
+          path: nvidia-kernel-src.tgz

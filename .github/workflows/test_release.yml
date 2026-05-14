@@ -1,0 +1,164 @@
+name: Test Release
+run-name: ${{ github.actor }} build ${{ github.ref_name }} sha ${{ github.sha }}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      make_release:
+        description: "Do you want to create a release?"
+        required: true
+        type: boolean
+        default: false
+
+env:
+  proj_name: "appstore.driver.gpu.nvidia.ko"
+  this_pack_version: "580.159.03-1"
+  this_pack_grid_url: "https://cn.download.nvidia.com/XFree86/Linux-x86_64/580.159.03/NVIDIA-Linux-x86_64-580.159.03.run"
+  this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      proj_name: ${{ steps.vars.outputs.proj_name }}
+      this_pack_grid_url: ${{ steps.vars.outputs.this_pack_grid_url }}
+      this_pack_grid_run: ${{ steps.vars.outputs.this_pack_grid_run }}
+    steps:
+      - name: Prepare build variables
+        id: vars
+        run: |
+          echo "proj_name=${{ env.proj_name }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_grid_url=${{ env.this_pack_grid_url }}" >> "$GITHUB_OUTPUT"
+          echo "this_pack_grid_run=${{ env.this_pack_grid_run }}" >> "$GITHUB_OUTPUT"
+
+  prepare_driver_package:
+    uses: ./.github/workflows/nvidia-grid-kernel-src.yml
+    secrets: inherit
+    needs:
+      - setup
+    with:
+      driver_pkg_artifact: nvidia-grid-kernel-src
+      this_pack_grid_url: ${{ needs.setup.outputs.this_pack_grid_url }}
+      this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
+
+  build_6-18-18-trim-587:
+    uses: ./.github/workflows/kernel-6.18.18-trim-587-amd64.yml
+    secrets: inherit
+    needs:
+      - setup
+      - prepare_driver_package
+    with:
+      proj_name: ${{ needs.setup.outputs.proj_name }}
+      driver_pkg_artifact: nvidia-grid-kernel-src
+
+  build_6-18-18-trim-570:
+    uses: ./.github/workflows/kernel-6.18.18-trim-570-amd64.yml
+    secrets: inherit
+    needs:
+      - setup
+      - prepare_driver_package
+    with:
+      proj_name: ${{ needs.setup.outputs.proj_name }}
+      driver_pkg_artifact: nvidia-grid-kernel-src
+
+  pack_app_tgz:
+    needs:
+      - build_6-18-18-trim-570
+      - build_6-18-18-trim-587
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kernel_package_version: "6.18.18-trim-570-amd64"
+            kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-570-amd64"
+          - kernel_package_version: "6.18.18-trim-587-amd64"
+            kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-587-amd64"
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Restore ${{ matrix.kernel_package_version }} artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.kernel_artifact_name }}
+          path: app/app/
+
+      - name: Pack app.tgz
+        run: |
+          cd app/
+          tar zcvf app.tgz app ui
+          mv app.tgz ../package/
+
+      - name: Pack package
+        run: |
+          tar zcvf appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz package
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
+          path: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
+
+  create_release:
+    if: ${{ inputs.make_release }}
+    needs:
+      - pack_app_tgz
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.this_pack_version }}
+          prerelease: true
+          release_name: "fnnas.appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}"
+
+  upload_release_assets:
+    if: ${{ inputs.make_release }}
+    needs:
+      - create_release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kernel_package_version: "6.18.18-trim-570-amd64"
+          - kernel_package_version: "6.18.18-trim-587-amd64"
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
+          path: release-assets/
+
+      - name: Upload Release Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Uploading release assets..."
+          echo "Uploading appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz"
+          gh release upload "${{ env.this_pack_version }}" "release-assets/appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz"
+          echo "Upload completed!"
+
+  verify_release_assets:
+    if: ${{ inputs.make_release }}
+    needs:
+      - upload_release_assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Uploaded Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Uploaded assets:"
+          gh release view "${{ env.this_pack_version }}" --json assets -q '.assets[].name'

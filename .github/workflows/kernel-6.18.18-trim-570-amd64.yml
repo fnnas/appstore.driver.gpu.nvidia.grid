@@ -1,0 +1,57 @@
+name: 6.18.18-trim-570-amd64
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  workflow_call:
+    inputs:
+      proj_name:
+        required: true
+        type: string
+        default: "appstore.driver.gpu.nvidia.ko"
+      driver_pkg_artifact:
+        required: true
+        type: string
+        default: "nvidia-grid-kernel-src"
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: makedie/fnos:kernHead-6.18.18-trim-570-amd64
+      options: -v ${{ github.workspace }}:${{ github.workspace }}
+    env:
+      kernel_name: "6.18.18-trim-570-amd64"
+      kernel_ver: "6.18.18-trim"
+    steps:
+      - name: Download NVIDIA kernel source
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.driver_pkg_artifact }}
+          path: .
+
+      - name: Extract NVIDIA kernel source
+        run: |
+          rm -rf kernel
+          tar zxf nvidia-kernel-src.tgz
+
+      - name: Build NVIDIA kernel modules
+        run: |
+          cd kernel
+          make -j"$(nproc)"
+
+      - name: Copy ko
+        run: |
+          mkdir -p upload/${{ inputs.proj_name }}_${{ env.kernel_name }}
+          find ./kernel -name '*.ko' -type f -print -exec cp {} ./upload/${{ inputs.proj_name }}_${{ env.kernel_name }}/ \;
+          test -n "$(find ./upload/${{ inputs.proj_name }}_${{ env.kernel_name }} -name '*.ko' -type f -print -quit)"
+          ls -la ./upload/${{ inputs.proj_name }}_${{ env.kernel_name }}/
+
+      - name: Upload ko
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.proj_name }}-${{ env.kernel_name }}
+          path: upload
