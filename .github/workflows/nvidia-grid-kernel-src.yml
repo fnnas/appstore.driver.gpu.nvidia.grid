@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Restore NVIDIA driver cache
         id: cache-grid-driver
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: downloads/${{ inputs.this_pack_grid_run }}
           key: nvidia-grid-driver-${{ inputs.this_pack_grid_run }}
@@ -50,13 +50,13 @@ jobs:
           tar zcf nvidia-kernel-src.tgz -C drvpkg kernel
 
       - name: Upload NVIDIA kernel source
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.driver_pkg_artifact }}
           path: nvidia-kernel-src.tgz
 
       - name: Upload NVIDIA firmware
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.firmware_artifact }}
           path: drvpkg/firmware

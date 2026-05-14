@@ -85,16 +85,16 @@ jobs:
             kernel_artifact_name: "appstore.driver.gpu.nvidia.ko-6.18.18-trim-587-amd64"
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore ${{ matrix.kernel_package_version }} artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ matrix.kernel_artifact_name }}
           path: app/app/
 
       - name: Restore NVIDIA firmware
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: nvidia-grid-firmware
           path: app/app/firmware/
@@ -110,7 +110,7 @@ jobs:
           tar zcvf appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz package
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
           path: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
@@ -122,13 +122,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.this_pack_version }}
-          prerelease: true
-          release_name: "fnnas.appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ env.this_pack_version }}" \
+            --title "fnnas.appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}" \
+            --prerelease
 
   upload_release_assets:
     if: ${{ inputs.make_release }}
@@ -143,7 +142,7 @@ jobs:
           - kernel_package_version: "6.18.18-trim-587-amd64"
     steps:
       - name: Download package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: appstore.driver.gpu.nvidia.ko-${{ env.this_pack_version }}-${{ matrix.kernel_package_version }}.tgz
           path: release-assets/
