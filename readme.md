@@ -183,32 +183,41 @@ ${TRIM_APPDEST}/app/appstore.driver.gpu.nvidia.ko_6.18.18-trim-587-amd64/
 
 ### 模块安装位置
 
-模块会安装到：
+不同 FNOS/TRIM 内核构建的模块根目录不完全一致。脚本会优先读取系统现有链接：
 
 ```text
-/usr/lib/modules_trim/$(uname -r)/nvidia-gpu-kernel-grid/
+/lib/modules/$(uname -r)/updates/trim/alternatives
+```
+
+如果该链接存在，会跟随它解析出实际模块根目录。例如不同系统上可能是：
+
+```text
+/usr/lib/modules_trim/$(uname -r)/alternatives
+/usr/trim/modules/$(uname -r)/alternatives
+```
+
+如果系统链接不存在或无法解析，脚本会按内核版本和 build number 做 fallback：`6.18.18` 及以上且 build number 大于 `542` 时使用 `/usr/lib/modules_trim/$(uname -r)`，否则使用 `/usr/trim/modules/$(uname -r)`。
+
+模块会安装到解析出的模块根目录下：
+
+```text
+<模块根目录>/nvidia-gpu-kernel-grid/
 ```
 
 然后切换 alternatives：
 
 ```text
-/usr/lib/modules_trim/$(uname -r)/alternatives/nvidia-gpu -> ../nvidia-gpu-kernel-grid
+<模块根目录>/alternatives/nvidia-gpu -> ../nvidia-gpu-kernel-grid
 ```
 
-系统默认存在：
-
-```text
-/lib/modules/$(uname -r)/updates/trim/alternatives -> /usr/lib/modules_trim/$(uname -r)/alternatives
-```
-
-因此切换 `/usr/lib/modules_trim/.../alternatives/nvidia-gpu` 后，`/lib/modules/.../updates/trim/alternatives/nvidia-gpu` 也会同步指向新的模块目录。
+因此无论 `/lib/modules/$(uname -r)/updates/trim/alternatives` 指向 `/usr/lib/modules_trim` 还是 `/usr/trim/modules`，`modprobe nvidia` 最终都会通过系统原有 alternatives 链接加载当前包安装的模块。
 
 ## 状态检查
 
 `package_kernel_space/cmd/main status` 会读取：
 
 ```text
-/usr/lib/modules_trim/$(uname -r)/alternatives/nvidia-gpu/nvidia.ko
+<模块根目录>/alternatives/nvidia-gpu/nvidia.ko
 ```
 
 并通过 `modinfo` 检查模块版本是否等于：
@@ -240,13 +249,13 @@ EXPECTED_DRIVER_VERSION="580.159.03"
 这两个脚本会恢复默认 proprietary 模块：
 
 ```text
-/usr/lib/modules_trim/$(uname -r)/alternatives/nvidia-gpu -> ../nvidia-gpu-proprietary
+<模块根目录>/alternatives/nvidia-gpu -> ../nvidia-gpu-proprietary
 ```
 
 并移除本项目安装的模块目录：
 
 ```text
-/usr/lib/modules_trim/$(uname -r)/nvidia-gpu-kernel-grid/
+<模块根目录>/nvidia-gpu-kernel-grid/
 ```
 
 然后执行：

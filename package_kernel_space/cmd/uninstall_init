@@ -6,41 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/common"
 
 main() {
-    local module_root
-    local alt_dir
-    local alt_link
-
-    module_root="$(module_root)"
-    alt_dir="$(module_alternatives_dir)"
-    alt_link="$(module_link)"
-
-    mkdir -p "${alt_dir}" || {
-        report_error "Failed to create NVIDIA module alternatives directory: ${alt_dir}"
-        return 1
-    }
-    rm -f "${module_root}/${MODULE_GROUP}" "${alt_link}" || {
-        report_error "Failed to remove old NVIDIA module alternative link"
-        return 1
-    }
-    ln -s "../${DEFAULT_MODULE_VARIANT}" "${alt_link}" || {
-        report_error "Failed to restore ${alt_link} to ../${DEFAULT_MODULE_VARIANT}"
-        return 1
-    }
-    rm -rf "${module_root}/${MODULE_VARIANT}" || {
-        report_error "Failed to remove NVIDIA GRID kernel module directory: ${module_root}/${MODULE_VARIANT}"
-        return 1
-    }
-
-    depmod || {
-        report_error "Failed to update module dependencies with depmod"
-        return 1
-    }
-    update-initramfs -u || {
-        report_error "Failed to update initramfs"
-        return 1
-    }
-
-    return 0
+    restore_default_module_package
 }
 
 main "$@"

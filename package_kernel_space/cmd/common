@@ -30,7 +30,52 @@ report_error() {
 }
 
 module_root() {
-    echo "/usr/lib/modules_trim/$(uname -r)"
+    local kernel_ver
+    local base_ver
+    local build_num
+    local trim_alternatives
+    local resolved_alternatives
+    local usr_lib_root
+    local usr_trim_root
+
+    kernel_ver="$(uname -r)"
+    base_ver="${kernel_ver%%-*}"
+    build_num="$(uname -a | grep -o '#[0-9]\+' | tr -d '#' | head -n 1)"
+    trim_alternatives="/lib/modules/${kernel_ver}/updates/trim/alternatives"
+    usr_lib_root="/usr/lib/modules_trim/${kernel_ver}"
+    usr_trim_root="/usr/trim/modules/${kernel_ver}"
+
+    if [[ -e "${trim_alternatives}" || -L "${trim_alternatives}" ]]; then
+        resolved_alternatives="$(readlink -f "${trim_alternatives}" 2>/dev/null)" || resolved_alternatives=""
+        if [[ "${resolved_alternatives}" == */alternatives ]]; then
+            dirname "${resolved_alternatives}"
+            return 0
+        fi
+    fi
+
+    if [[ "${build_num}" =~ ^[0-9]+$ ]] && \
+        [[ "$(printf '%s\n' "6.18.18" "${base_ver}" | sort -V | head -n 1)" == "6.18.18" ]] && \
+        (( build_num > 542 )); then
+        echo "${usr_lib_root}"
+        return 0
+    fi
+
+    if [[ "${build_num}" =~ ^[0-9]+$ ]]; then
+        echo "${usr_trim_root}"
+        return 0
+    fi
+
+    if [[ -d "${usr_lib_root}" ]]; then
+        echo "${usr_lib_root}"
+        return 0
+    fi
+
+    if [[ -d "${usr_trim_root}" ]]; then
+        echo "${usr_trim_root}"
+        return 0
+    fi
+
+    echo "${usr_lib_root}"
 }
 
 module_install_dir() {
@@ -43,6 +88,42 @@ module_alternatives_dir() {
 
 module_link() {
     echo "$(module_alternatives_dir)/${MODULE_GROUP}"
+}
+
+restore_default_module_package() {
+    local module_root
+    local alt_dir
+    local alt_link
+
+    module_root="$(module_root)"
+    alt_dir="$(module_alternatives_dir)"
+    alt_link="$(module_link)"
+
+    mkdir -p "${alt_dir}" || {
+        report_error "Failed to create NVIDIA module alternatives directory: ${alt_dir}"
+        return 1
+    }
+    rm -f "${module_root}/${MODULE_GROUP}" "${alt_link}" || {
+        report_error "Failed to remove old NVIDIA module alternative link"
+        return 1
+    }
+    ln -s "../${DEFAULT_MODULE_VARIANT}" "${alt_link}" || {
+        report_error "Failed to restore ${alt_link} to ../${DEFAULT_MODULE_VARIANT}"
+        return 1
+    }
+    rm -rf "${module_root}/${MODULE_VARIANT}" || {
+        report_error "Failed to remove NVIDIA GRID kernel module directory: ${module_root}/${MODULE_VARIANT}"
+        return 1
+    }
+
+    depmod || {
+        report_error "Failed to update module dependencies with depmod"
+        return 1
+    }
+    update-initramfs -u || {
+        report_error "Failed to update initramfs"
+        return 1
+    }
 }
 
 disable_nouveau() {
