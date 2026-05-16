@@ -1,3 +1,26 @@
+# IDE / editor
 /.idea/
-.DS_Store
+.vscode/
 
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+/.claude/
+
+# Build and packaging artifacts
+/downloads/
+/drvpkg/
+/kernel/
+/release-assets/
+/nvidia-kernel-src.tgz
+/*.tgz
+/package_kernel_space/app.tgz
+/package_user_space/app.tgz
+
+# CI staging directories; keep placeholders tracked
+/app/app/*
+!/app/app/.gitkeep
+/app/ui/*
+!/app/ui/.gitkeep
