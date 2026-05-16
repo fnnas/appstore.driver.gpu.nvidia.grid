@@ -98,20 +98,20 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 
 | 当前内核 build number | 应选择的内核驱动包 |
 | --- | --- |
-| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz` |
-| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-570-amd64.tgz` |
-| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz` |
+| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz` |
+| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz` |
+| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz` |
 
 例如截图中的系统是 `6.18.18-trim #473`，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
 ```
 
 用户空间驱动包固定下载：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 ```
 
 ### 2.2 为什么不直接使用官方应用中心驱动
@@ -130,7 +130,7 @@ NVRM: None of the NVIDIA devices were initialized.
 sudo dmesg | grep NVRM
 ```
 
-![官方驱动无法使用](usage/6_check_offical_driver.png)
+![官方驱动无法使用](usage/6_check_official_driver.png)
 
 本项目提供的是匹配 vGPU / GRID 场景的驱动包。请不要同时安装或启用飞牛官方应用中心里的 NVIDIA 驱动应用，否则一定会出现冲突。
 
@@ -147,7 +147,7 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 选择当前版本，例如：
 
 ```text
-580.159.03-1
+580.159.03-2
 ```
 
 ![选择驱动包](usage/7_select_driver.png)
@@ -155,13 +155,13 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 你需要下载两个包：
 
 1. 一个内核驱动包，根据 `uname -a` 的 build number 选择。
-2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz`。
+2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz`。
 
 以 `#473` 内核为例，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 ```
 
 ### 3.2 使用 FNOS 下载工具下载
@@ -179,19 +179,19 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 例如：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
 ```
 
 改为：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 用户空间驱动包同样改名：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
 
 ![修改扩展名](usage/9_rename_package.png)
@@ -203,7 +203,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz.fpk
 打开 FNOS 应用中心或本地安装入口，选择改名后的内核驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![安装内核驱动包](usage/10_install_package.png)
@@ -221,7 +221,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz.fpk
 - 禁用 nouveau
 - 执行 `update-initramfs -u`
 
-![等待内核驱动安装](usage/11_waiti_ko_install.png)
+![等待内核驱动安装](usage/11_wait_ko_install.png)
 
 如果安装失败，应用中心会显示明确错误信息。常见原因包括：
 
@@ -279,7 +279,7 @@ NVIDIA UNIX x86_64 Kernel Module  580.159.03
 确认内核驱动已经正常加载后，再安装用户空间驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
 
 ![安装用户空间驱动](usage/14_install_user.png)
@@ -381,7 +381,7 @@ nvidia-smi
 
 进入相册应用，启用需要 GPU 加速的功能，例如 人脸识别、智能识别。
 
-![相册 AI 加速](usage/19_phtoto_ai.png)
+![相册 AI 加速](usage/19_photo_ai.png)
 
 使用相册 AI 功能时，可以同时打开资源管理器观察 GPU 使用率、显存使用量是否变化。也可以在 SSH 中执行：
 

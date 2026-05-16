@@ -39,7 +39,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v6
 
-      - name: Restore NVIDIA runfile
+      - name: Restore NVIDIA runfile artifact
         uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.runfile_artifact }}
@@ -56,13 +56,13 @@ jobs:
           name: ${{ inputs.nvlts_artifact }}
           path: app/app/nvlts/
 
-      - name: Verify NVLTS
+      - name: Verify NVLTS artifact
         run: |
           test -f app/app/nvlts/nvlts
           test -d app/app/nvlts/configs
           chmod +x app/app/nvlts/nvlts
 
-      - name: Update package manifest
+      - name: Render user-space package manifest
         run: |
           sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_user_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/manifest
@@ -71,17 +71,17 @@ jobs:
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/cmd/common
           sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/common
 
-      - name: Pack app.tgz
+      - name: Create user-space app payload archive
         run: |
           cd app/
           tar zcvf app.tgz app ui
           mv app.tgz ../package_user_space/
 
-      - name: Pack package
+      - name: Create user-space package archive
         run: |
           tar zcvf appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz package_user_space
 
-      - name: Upload package
+      - name: Upload user-space package artifact
         uses: actions/upload-artifact@v7
         with:
           name: appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz

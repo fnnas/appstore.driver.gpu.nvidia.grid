@@ -6,6 +6,10 @@
 .DS_Store
 Thumbs.db
 
+# Python cache
+__pycache__/
+*.py[cod]
+
 # Claude Code local settings
 /.claude/
 

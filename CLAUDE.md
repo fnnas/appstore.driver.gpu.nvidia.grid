@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
-当前文档中的驱动组合是 GRID 19.5，客户机 GRID 驱动版本 `580.159.03`，应用包版本 `580.159.03-1`，支持 FNOS/TRIM 内核 `6.18.18-trim`。应用包版本中的 `-1` 是同一 NVIDIA 驱动版本下的应用包发布修订号，后续可用 `-2`、`-3` 等发布小版本，不代表 NVIDIA 驱动版本变化。
+当前文档中的驱动组合是 GRID 19.5，客户机 GRID 驱动版本 `580.159.03`，应用包版本 `580.159.03-2`，支持 FNOS/TRIM 内核 `6.18.18-trim`。应用包版本中的 `-1` 是同一 NVIDIA 驱动版本下的应用包发布修订号，后续可用 `-2`、`-3` 等发布小版本，不代表 NVIDIA 驱动版本变化。
 
 ## 常用命令
 
@@ -27,8 +27,12 @@ from pathlib import Path
 
 paths = [
     Path("readme.md"),
+    Path("docs/usage.md"),
+    Path("docs/maintenance.md"),
+    Path("CLAUDE.md"),
     Path("package_kernel_space/manifest"),
     Path("package_user_space/manifest"),
+    Path("scripts/patch-nvidia-grid-kernel-binary.py"),
 ]
 
 failed = False
@@ -43,6 +47,36 @@ for path in paths:
         print(f"{path}: possible mojibake marker found")
         failed = True
 
+raise SystemExit(1 if failed else 0)
+PY
+```
+
+本地运行应用包版本一致性检查：
+
+```bash
+python3 - <<'PY'
+import re
+from pathlib import Path
+
+workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
+package_version = re.search(r'this_pack_version: "([^"]+)"', workflow).group(1)
+driver_version = re.search(r'this_pack_nvidia_driver_version: "([^"]+)"', workflow).group(1)
+version_pattern = re.compile(rf'{re.escape(driver_version)}-\d+(?![\d.])')
+paths = [
+    Path("readme.md"),
+    Path("docs/usage.md"),
+    Path("docs/maintenance.md"),
+    Path("CLAUDE.md"),
+    Path(".github/workflows/test_release.yml"),
+]
+
+failed = False
+for path in paths:
+    text = path.read_text(encoding="utf-8")
+    for match in sorted(set(version_pattern.findall(text))):
+        if match != package_version:
+            print(f"{path}: package version {match} does not match this_pack_version {package_version}")
+            failed = True
 raise SystemExit(1 if failed else 0)
 PY
 ```
@@ -98,7 +132,7 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 更新 NVIDIA 驱动或应用包版本时，至少要同步检查这些位置：
 
-- `.github/workflows/test_release.yml`：`this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本，例如 `580.159.03`；`this_pack_version` 是应用包版本，例如 `580.159.03-1`。同一 NVIDIA 驱动版本下只发包修订时，只递增 `-1`、`-2`、`-3` 这类应用包修订号；升级 NVIDIA 驱动时才同步改变前面的驱动版本号。
+- `.github/workflows/test_release.yml`：`this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本，例如 `580.159.03`；`this_pack_version` 是应用包版本，例如 `580.159.03-2`。同一 NVIDIA 驱动版本下只发包修订时，只递增 `-1`、`-2`、`-3` 这类应用包修订号；升级 NVIDIA 驱动时才同步改变前面的驱动版本号。
 - `.github/workflows/test_release.yml`：还要同步维护 `this_pack_nvidia_driver_url`、`this_pack_grid_url`、`this_pack_grid_run`，以及需要固定 NVLTS 版本时的 `this_pack_nvlts_version`。
 - `scripts/patch-nvidia-grid-kernel-binary.py`：升级 NVIDIA GRID runfile 时需要复核 patch rules 是否仍适配。pattern 未命中会按名称输出 warning 且不阻塞构建，检查构建日志时要确认实际命中和替换情况。
 - `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`：`EXPECTED_DRIVER_VERSION` 占位符由 CI 替换，必须和 workflow 输入保持一致。

@@ -25,14 +25,14 @@ class PatchResult:
     offsets: list[int]
 
 
-RULES = [
+PATCH_RULES = [
     PatchRule(
-        name="P1xx",
+        name="P1xx device IDs",
         search_hex="071b0700871b0700c71b0700071c0700091c0700",
         replace_hex="ffff0700ffff0700ffff0700ffff0700ffff0700",
     ),
     PatchRule(
-        name="CMP",
+        name="CMP device IDs",
         search_hex="091e0700491e0700bc1e0700fc1e07000b1f0700812007008220070083200700c2200700892107000d2207004d2207008a240700",
         replace_hex="ffff0700491e0700bc1e0700fc1e0700ffff070081200700ffff070083200700ffff0700ffff0700ffff07004d220700ffff0700",
     ),
@@ -119,7 +119,7 @@ def apply_rules(data: bytearray) -> tuple[list[PatchResult], list[str], list[Pat
     not_found: list[str] = []
     already_replaced: list[PatchResult] = []
 
-    for rule in RULES:
+    for rule in PATCH_RULES:
         search, replace = pattern_bytes(rule)
         count, found_offsets = replace_all(data, search, replace)
         if count:

@@ -22,8 +22,12 @@ jobs:
 
           paths = [
               Path("readme.md"),
+              Path("docs/usage.md"),
+              Path("docs/maintenance.md"),
+              Path("CLAUDE.md"),
               Path("package_kernel_space/manifest"),
               Path("package_user_space/manifest"),
+              Path("scripts/patch-nvidia-grid-kernel-binary.py"),
           ]
 
           failed = False
@@ -37,6 +41,41 @@ jobs:
               if "???" in text or "\ufffd" in text:
                   print(f"{path}: possible mojibake marker found")
                   failed = True
+
+          raise SystemExit(1 if failed else 0)
+          PY
+
+      - name: Check package version consistency
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
+          package_version_match = re.search(r'this_pack_version: "([^"]+)"', workflow)
+          driver_version_match = re.search(r'this_pack_nvidia_driver_version: "([^"]+)"', workflow)
+          if not package_version_match or not driver_version_match:
+              print("Unable to read this_pack_version or this_pack_nvidia_driver_version from test_release.yml")
+              raise SystemExit(1)
+
+          package_version = package_version_match.group(1)
+          driver_version = driver_version_match.group(1)
+          version_pattern = re.compile(rf'{re.escape(driver_version)}-\d+(?![\d.])')
+          paths = [
+              Path("readme.md"),
+              Path("docs/usage.md"),
+              Path("docs/maintenance.md"),
+              Path("CLAUDE.md"),
+              Path(".github/workflows/test_release.yml"),
+          ]
+
+          failed = False
+          for path in paths:
+              text = path.read_text(encoding="utf-8")
+              for match in sorted(set(version_pattern.findall(text))):
+                  if match != package_version:
+                      print(f"{path}: package version {match} does not match this_pack_version {package_version}")
+                      failed = True
 
           raise SystemExit(1 if failed else 0)
           PY

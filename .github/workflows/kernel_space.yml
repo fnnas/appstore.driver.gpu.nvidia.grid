@@ -74,20 +74,20 @@ jobs:
           cd kernel
           make -j"$(nproc)"
 
-      - name: Copy ko
+      - name: Collect built kernel modules
         run: |
           mkdir -p app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}
           find ./kernel -name '*.ko' -type f -print -exec cp {} ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}/ \;
           test -n "$(find ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }} -name '*.ko' -type f -print -quit)"
           ls -la ./app/app/${{ inputs.kernel_module_package_name }}_${{ env.kernel_name }}/
 
-      - name: Restore NVIDIA firmware
+      - name: Restore NVIDIA firmware artifact
         uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.firmware_artifact }}
           path: app/app/firmware/
 
-      - name: Update package manifest
+      - name: Render kernel package manifest
         run: |
           sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/manifest
@@ -96,17 +96,17 @@ jobs:
           sed "s/this_pack_manifest_kernel/${{ env.kernel_name }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/cmd/common
 
-      - name: Pack app.tgz
+      - name: Create kernel app payload archive
         run: |
           cd app/
           tar zcvf app.tgz app ui
           mv app.tgz ../package_kernel_space/
 
-      - name: Pack package
+      - name: Create kernel-space package archive
         run: |
           tar zcvf appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz package_kernel_space
 
-      - name: Upload package
+      - name: Upload kernel-space package artifact
         uses: actions/upload-artifact@v7
         with:
           name: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz

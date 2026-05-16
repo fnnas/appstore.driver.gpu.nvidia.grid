@@ -12,7 +12,7 @@
 - vGPU 分支：GRID 19.5
 - 宿主机 vGPU KVM 驱动：`580.159.01`
 - 客户机 GRID 驱动：`580.159.03`
-- 应用包版本：`580.159.03-1`
+- 应用包版本：`580.159.03-2`
 - 支持内核：`6.18.18-trim`
 - 支持架构：`x86`
 
@@ -26,7 +26,7 @@
 每次安装至少需要下载两个包：
 
 1. 一个内核空间驱动包，根据 FNOS 内核版本和 build number 选择。
-2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz`。
+2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz`。
 
 内核驱动包选择规则：先确认内核版本，例如 `6.18.18-trim`；再根据同一内核版本下的 build number 选择对应包。后续如果支持新的 FNOS/TRIM 内核版本，会增加新的内核版本分组。
 
@@ -34,9 +34,9 @@
 
 | 当前内核版本         | 当前内核 build number | 应选择的内核驱动包                                                               |
 |----------------|-------------------|-------------------------------------------------------------------------|
-| `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz` |
-| `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-570-amd64.tgz` |
-| `6.18.18-trim` | `#587` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz` |
+| `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz` |
+| `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz` |
+| `6.18.18-trim` | `#587` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz` |
 
 安装前在 FNOS 控制台或 SSH 中执行：
 

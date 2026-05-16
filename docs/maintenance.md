@@ -43,7 +43,7 @@ docs/
 ## 当前版本
 
 - NVIDIA GRID 客户机驱动版本：`580.159.03`
-- 应用包版本：`580.159.03-1`
+- 应用包版本：`580.159.03-2`
 - vGPU 分支：GRID 19.5
 - 宿主机 vGPU KVM 驱动示例：`580.159.01`
 - 当前支持内核：`6.18.18-trim`
@@ -55,10 +55,10 @@ docs/
 GitHub Actions 会生成以下最终包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-570-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-1-6.18.18-trim-587-amd64.tgz
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 ```
 
 内核空间包包含：
@@ -91,7 +91,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 ```yaml
 proj_name: "appstore.driver.gpu.nvidia.grid"
 kernel_module_package_name: "appstore.driver.gpu.nvidia.ko"
-this_pack_version: "580.159.03-1"
+this_pack_version: "580.159.03-2"
 this_pack_nvidia_driver_version: "580.159.03"
 this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
 this_pack_grid_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
@@ -105,8 +105,8 @@ this_pack_nvlts_version: ""
 
 - 下载并缓存 NVIDIA `.run` 文件
 - 执行 `--extract-only --target drvpkg`
-- 使用 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试 patch `drvpkg/kernel/nvidia/nv-kernel.o_binary`
-- 将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
+- 在独立的 `Patch NVIDIA kernel binary` step 中使用 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试 patch `drvpkg/kernel/nvidia/nv-kernel.o_binary`
+- 在独立的 `Pack NVIDIA kernel source` step 中将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
 - 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
 - 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile`
 
@@ -157,15 +157,16 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 打出用户空间驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 ```
 
 ### `static_checks.yml`
 
 负责静态检查：
 
-- 校验 README、文档和 manifest 可以按 UTF-8 读取
+- 校验 README、文档、`CLAUDE.md`、manifest 和 patch 脚本可以按 UTF-8 读取
 - 检查明显乱码标记
+- 校验文档中的应用包版本与 `test_release.yml` 的 `this_pack_version` 一致
 - 对 `scripts/patch-nvidia-grid-kernel-binary.py` 执行 `python3 -m py_compile`
 - 对 `package_kernel_space/cmd` 和 `package_user_space/cmd` 下的 shell 脚本执行 `bash -n`
 
