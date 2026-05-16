@@ -30,8 +30,10 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository code
+      - name: Check out patch script
         uses: actions/checkout@v6
+        with:
+          sparse-checkout: scripts
 
       - name: Restore NVIDIA driver cache
         id: cache-grid-driver
