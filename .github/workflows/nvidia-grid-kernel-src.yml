@@ -30,6 +30,9 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
       - name: Restore NVIDIA driver cache
         id: cache-grid-driver
         uses: actions/cache@v5
@@ -51,6 +54,9 @@ jobs:
           "./downloads/${{ inputs.this_pack_grid_run }}" --extract-only --target drvpkg
           test -d drvpkg/kernel
           test -d drvpkg/firmware
+          if ! python3 scripts/patch-nvidia-grid-kernel-binary.py drvpkg/kernel/nvidia/nv-kernel.o_binary; then
+            echo "::warning::NVIDIA GRID kernel binary patch script failed; continuing with current kernel source. Check previous log lines for the failed rule or file path."
+          fi
           tar zcf nvidia-kernel-src.tgz -C drvpkg kernel
 
       - name: Upload NVIDIA kernel source

@@ -47,6 +47,12 @@ raise SystemExit(1 if failed else 0)
 PY
 ```
 
+本地运行 Python patch 脚本语法检查：
+
+```bash
+python3 -m py_compile scripts/patch-nvidia-grid-kernel-binary.py
+```
+
 本地运行全部包生命周期脚本的 shell 语法检查：
 
 ```bash
@@ -76,7 +82,7 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 `.github/workflows/test_release.yml` 是总入口。它集中维护项目名、包版本、NVIDIA 驱动版本、GRID runfile 下载地址和文件名，以及可选的 NVLTS 版本。它依次调用复用 workflow 来准备 NVIDIA GRID 安装器、准备 NVLTS、构建内核空间包、打包用户空间包，并在需要时创建和上传 GitHub Release 产物。
 
-`.github/workflows/nvidia-grid-kernel-src.yml` 下载 NVIDIA GRID `.run` 安装器，将其解包到 `drvpkg`，再发布三个 artifact：`nvidia-grid-kernel-src` 保存 kernel source，`nvidia-grid-firmware` 保存 firmware，`nvidia-grid-runfile` 保存原始 `.run` 文件。
+`.github/workflows/nvidia-grid-kernel-src.yml` 下载 NVIDIA GRID `.run` 安装器，将其解包到 `drvpkg`，通过 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试修改 `drvpkg/kernel/nvidia/nv-kernel.o_binary`，再发布三个 artifact：`nvidia-grid-kernel-src` 保存 kernel source，`nvidia-grid-firmware` 保存 firmware，`nvidia-grid-runfile` 保存原始 `.run` 文件。patch 逻辑是 pattern 命中多少就替换多少；未命中的 pattern 会按名称输出 warning；脚本级失败也只输出 warning 并继续构建。
 
 `.github/workflows/kernel_space.yml` 在 FNOS 内核头文件容器中编译 NVIDIA 内核模块。当前 matrix 覆盖 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64` 和 `6.18.18-trim-587-amd64`。每个目标都会在解包出的 NVIDIA `kernel/` 目录中执行 `make -j"$(nproc)"`，把生成的 `*.ko` 复制到 `app/app/appstore.driver.gpu.nvidia.ko_<kernel-name>/`，恢复 firmware 到 `app/app/firmware/`，替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传内核空间驱动包。
 
@@ -94,6 +100,7 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 - `.github/workflows/test_release.yml`：`this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本，例如 `580.159.03`；`this_pack_version` 是应用包版本，例如 `580.159.03-1`。同一 NVIDIA 驱动版本下只发包修订时，只递增 `-1`、`-2`、`-3` 这类应用包修订号；升级 NVIDIA 驱动时才同步改变前面的驱动版本号。
 - `.github/workflows/test_release.yml`：还要同步维护 `this_pack_nvidia_driver_url`、`this_pack_grid_url`、`this_pack_grid_run`，以及需要固定 NVLTS 版本时的 `this_pack_nvlts_version`。
+- `scripts/patch-nvidia-grid-kernel-binary.py`：升级 NVIDIA GRID runfile 时需要复核 patch rules 是否仍适配。pattern 未命中会按名称输出 warning 且不阻塞构建，检查构建日志时要确认实际命中和替换情况。
 - `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`：`EXPECTED_DRIVER_VERSION` 占位符由 CI 替换，必须和 workflow 输入保持一致。
 - `package_user_space/cmd/common`：`NVIDIA_RUN_FILE` 由 `this_pack_grid_run` 替换。
 - `package_kernel_space/manifest` 和 `package_user_space/manifest`：占位符名称要和 workflow 中的 `sed` 替换逻辑保持一致。

@@ -105,9 +105,12 @@ this_pack_nvlts_version: ""
 
 - 下载并缓存 NVIDIA `.run` 文件
 - 执行 `--extract-only --target drvpkg`
+- 使用 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试 patch `drvpkg/kernel/nvidia/nv-kernel.o_binary`
 - 将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
 - 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
 - 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile`
+
+patch 逻辑会按规则逐条匹配；命中的 pattern 会全部替换，未命中的 pattern 会按名称输出 GitHub Actions warning，但不会阻塞构建。脚本级失败同样会输出 warning，并继续使用当前 `drvpkg/kernel` 打包 artifact。
 
 firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 tgz。
 
@@ -134,7 +137,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 执行流程：
 
 - 下载 `nvidia-grid-kernel-src`
-- 解出 `kernel/`
+- 解出 `kernel/`，该 artifact 在 patch pattern 命中时包含已 patch 的 kernel source，未命中或脚本级失败时保持当前 kernel source
 - 在对应内核头文件容器中执行 `make -j"$(nproc)"`
 - 收集编译出的 `*.ko`
 - 下载 `nvidia-grid-firmware`
@@ -163,6 +166,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-1-x86.tgz
 
 - 校验 README、文档和 manifest 可以按 UTF-8 读取
 - 检查明显乱码标记
+- 对 `scripts/patch-nvidia-grid-kernel-binary.py` 执行 `python3 -m py_compile`
 - 对 `package_kernel_space/cmd` 和 `package_user_space/cmd` 下的 shell 脚本执行 `bash -n`
 
 ## 内核空间驱动包
@@ -440,15 +444,19 @@ ${TRIM_TEMP_LOGFILE}
    - `this_pack_grid_run`
    - `this_pack_nvlts_version`，如需要固定 NVLTS 版本
 
-2. `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`
+2. `scripts/patch-nvidia-grid-kernel-binary.py`
+   - 升级 `this_pack_grid_run` 或 NVIDIA 驱动版本时，建议重新检查 hex pattern 是否还能命中
+   - pattern 未命中不会阻塞构建，但会按 pattern 名称输出 warning，需要在 workflow 日志中确认实际 patch 情况
+
+3. `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`
    - `EXPECTED_DRIVER_VERSION` 的模板替换结果需要保持一致
 
-3. 如新增内核或架构
+4. 如新增内核或架构
    - 在 `kernel_space.yml` 的 matrix 中加入对应目标
    - 在 `test_release.yml` 的 release 上传矩阵中加入对应最终包目标
    - 同步维护矩阵中的 `manifest_platform`
 
-4. 如调整包名
+5. 如调整包名
    - `test_release.yml` 的 `proj_name` 和 `kernel_module_package_name`
    - `kernel_space.yml` 的 `kernel_module_package_name`
    - `package_kernel_space/cmd/common` 中的 `PROJ_NAME`
@@ -461,6 +469,7 @@ ${TRIM_TEMP_LOGFILE}
 - `appstore.driver.gpu.nvidia.user` 用于用户空间应用包名。
 - 内核空间和用户空间驱动版本必须一致。
 - 宿主机 vGPU KVM 驱动和客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 版本组合。
+- NVIDIA kernel binary patch 的 pattern 未命中不会阻塞构建，但会按 pattern 名称输出 warning；脚本级失败也只会输出 warning 并继续构建。维护发布包时需要检查 workflow 日志，确认实际 patch 情况。
 - 本项目与飞牛官方应用中心 NVIDIA 驱动存在冲突，不应同时安装或启用。
 
 ## 图标与品牌素材说明
