@@ -13,6 +13,10 @@ __pycache__/
 # Claude Code local settings
 /.claude/
 
+# OpenCode local settings and session state
+/.opencode/
+/.sisyphus/
+
 # Build and packaging artifacts
 /downloads/
 /drvpkg/
