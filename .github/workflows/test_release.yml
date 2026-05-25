@@ -17,6 +17,11 @@ on:
         required: true
         type: boolean
         default: false
+      enable_ccache:
+        description: "Do you want to enable ccache?"
+        required: true
+        type: boolean
+        default: true
 
 env:
   proj_name: "appstore.driver.gpu.nvidia.grid"
@@ -44,14 +49,16 @@ jobs:
       - name: Prepare build variables
         id: vars
         run: |
-          echo "proj_name=${{ env.proj_name }}" >> "$GITHUB_OUTPUT"
-          echo "kernel_module_package_name=${{ env.kernel_module_package_name }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_version=${{ env.this_pack_version }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_nvidia_driver_version=${{ env.this_pack_nvidia_driver_version }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_grid_url=${{ env.this_pack_grid_url }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_grid_run=${{ env.this_pack_grid_run }}" >> "$GITHUB_OUTPUT"
-          echo "this_pack_nvlts_version=${{ env.this_pack_nvlts_version }}" >> "$GITHUB_OUTPUT"
+          {
+            echo "proj_name=${{ env.proj_name }}"
+            echo "kernel_module_package_name=${{ env.kernel_module_package_name }}"
+            echo "this_pack_version=${{ env.this_pack_version }}"
+            echo "this_pack_nvidia_driver_version=${{ env.this_pack_nvidia_driver_version }}"
+            echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}"
+            echo "this_pack_grid_url=${{ env.this_pack_grid_url }}"
+            echo "this_pack_grid_run=${{ env.this_pack_grid_run }}"
+            echo "this_pack_nvlts_version=${{ env.this_pack_nvlts_version }}"
+          } >> "$GITHUB_OUTPUT"
 
   prepare_driver_package:
     uses: ./.github/workflows/nvidia-grid-kernel-src.yml
@@ -87,6 +94,75 @@ jobs:
       this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
       driver_pkg_artifact: nvidia-grid-kernel-src
       firmware_artifact: nvidia-grid-firmware
+      enable_ccache: ${{ inputs.enable_ccache }}
+
+  prune_ccache:
+    if: ${{ always() && inputs.enable_ccache }}
+    needs:
+      - package_kernel_space
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Keep latest two ccache entries per kernel
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          echo "Repository: $GH_REPO"
+          echo "Authenticated as: $(gh api user --jq .login 2>/dev/null || echo unknown)"
+          echo "Listing ccache entries..."
+
+          caches_file="$(mktemp)"
+          delete_file="$(mktemp)"
+
+          gh cache list --key ccache- --limit 1000 --json id,key,createdAt,lastAccessedAt,sizeInBytes > "$caches_file"
+
+          cache_count="$(jq 'length' "$caches_file")"
+          echo "Found $cache_count cache entries with ccache- prefix."
+          jq -r '
+            sort_by(.key)
+            | .[]
+            | "- id=\(.id) key=\(.key) createdAt=\(.createdAt) lastAccessedAt=\(.lastAccessedAt) size=\(.sizeInBytes)"
+          ' "$caches_file"
+
+          jq -c '
+            map(select(.key | test("^ccache-.+-[0-9]+-[0-9]+$")))
+            | group_by(.key | sub("-[0-9]+-[0-9]+$"; ""))
+            | map(sort_by(.createdAt) | reverse | .[2:][]?)
+            | .[]
+          ' "$caches_file" > "$delete_file"
+
+          delete_count="$(jq -s 'length' "$delete_file")"
+          if [ "$delete_count" -eq 0 ]; then
+            echo "No old ccache entries to delete."
+            exit 0
+          fi
+
+          echo "Deleting $delete_count old ccache entries. Keeping latest two entries per kernel key prefix."
+          jq -r '
+            "- id=\(.id) key=\(.key) createdAt=\(.createdAt) lastAccessedAt=\(.lastAccessedAt) size=\(.sizeInBytes)"
+          ' "$delete_file"
+
+          while IFS= read -r cache; do
+            [ -n "$cache" ] || continue
+            cache_id="$(jq -r '.id' <<< "$cache")"
+            cache_key="$(jq -r '.key' <<< "$cache")"
+            cache_created_at="$(jq -r '.createdAt' <<< "$cache")"
+            echo "::group::Delete cache id=$cache_id key=$cache_key"
+            echo "createdAt=$cache_created_at"
+            if output="$(gh cache delete "$cache_id" 2>&1)"; then
+              echo "Deleted cache id=$cache_id key=$cache_key"
+            else
+              status="$?"
+              echo "::warning::Failed to delete cache id=$cache_id key=$cache_key exit=$status"
+              echo "$output"
+            fi
+            echo "::endgroup::"
+          done < "$delete_file"
 
   package_user_space:
     uses: ./.github/workflows/user_space.yml

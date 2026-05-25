@@ -32,3 +32,5 @@ __pycache__/
 !/app/app/.gitkeep
 /app/ui/*
 !/app/ui/.gitkeep
+
+/tmp
