@@ -8,6 +8,7 @@ EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"
 MODULE_GROUP="nvidia-gpu"
 MODULE_VARIANT="nvidia-gpu-kernel-grid"
 DEFAULT_MODULE_VARIANT="nvidia-gpu-proprietary"
+MIN_ROOT_FREE_KB=$((2 * 1024 * 1024))
 
 log_msg() {
     local msg="$1"
@@ -27,6 +28,28 @@ report_error() {
         mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
         printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
     fi
+}
+
+check_root_free_space() {
+    local available_kb
+    local available_mb
+    local required_mb
+
+    available_kb="$(df -Pk / 2>/dev/null | awk 'NR == 2 {print $4; exit}')"
+    if [[ ! "${available_kb}" =~ ^[0-9]+$ ]]; then
+        report_error "Unable to read root filesystem free space"
+        return 1
+    fi
+
+    available_mb=$((available_kb / 1024))
+    required_mb=$((MIN_ROOT_FREE_KB / 1024))
+
+    if (( available_kb < MIN_ROOT_FREE_KB )); then
+        report_error "Insufficient root filesystem free space: ${available_mb} MB available; need at least ${required_mb} MB"
+        return 1
+    fi
+
+    log_msg "Root filesystem free space is ${available_mb} MB"
 }
 
 module_root() {

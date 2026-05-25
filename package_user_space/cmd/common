@@ -5,6 +5,7 @@ PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"
 NVIDIA_RUN_FILE="this_pack_grid_run"
+MIN_ROOT_FREE_KB=$((2 * 1024 * 1024))
 
 log_msg() {
     local msg="$1"
@@ -26,8 +27,34 @@ report_error() {
     fi
 }
 
+check_root_free_space() {
+    local available_kb
+    local available_mb
+    local required_mb
+
+    available_kb="$(df -Pk / 2>/dev/null | awk 'NR == 2 {print $4; exit}')"
+    if [[ ! "${available_kb}" =~ ^[0-9]+$ ]]; then
+        report_error "Unable to read root filesystem free space"
+        return 1
+    fi
+
+    available_mb=$((available_kb / 1024))
+    required_mb=$((MIN_ROOT_FREE_KB / 1024))
+
+    if (( available_kb < MIN_ROOT_FREE_KB )); then
+        report_error "Insufficient root filesystem free space: ${available_mb} MB available; need at least ${required_mb} MB"
+        return 1
+    fi
+
+    log_msg "Root filesystem free space is ${available_mb} MB"
+}
+
 nvidia_run_file_path() {
     echo "${PACKAGE_BASE}/app/${NVIDIA_RUN_FILE}"
+}
+
+nvidia_installer_tmp_dir() {
+    echo "${TRIM_PKGTMP:-/tmp}"
 }
 
 nvidia_ml_library_path() {
@@ -46,20 +73,28 @@ systemd_unit_exists() {
 
 uninstall_user_space_driver() {
     local run_file
+    local tmp_dir
 
     run_file="$(nvidia_run_file_path)"
+    tmp_dir="$(nvidia_installer_tmp_dir)"
     if [[ ! -f "${run_file}" ]]; then
         report_error "NVIDIA user space driver installer not found: ${run_file}"
         return 1
     fi
+
+    mkdir -p "${tmp_dir}" || {
+        report_error "Failed to create NVIDIA user space driver temporary directory: ${tmp_dir}"
+        return 1
+    }
 
     chmod +x "${run_file}" || {
         report_error "Failed to make NVIDIA user space driver installer executable: ${run_file}"
         return 1
     }
 
+    log_msg "TRIM_PKGTMP=${tmp_dir}"
     log_msg "Uninstalling NVIDIA user space driver with ${run_file}"
-    if ! "${run_file}" \
+    if ! TMPDIR="${tmp_dir}" "${run_file}" \
         --uninstall \
         --silent \
         --no-runlevel-check \

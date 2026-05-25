@@ -218,7 +218,7 @@ main() {
     start)
         uname -a
         log_msg "kernel_info $(uname -r) $(kernel_build_num)"
-        install_firmware && install_modules
+        check_root_free_space && install_firmware && install_modules
         ;;
     stop)
         log_msg "Stop requested; module alternative link is restored by uninstall_init or upgrade_init"
