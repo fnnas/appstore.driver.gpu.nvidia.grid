@@ -1,6 +1,6 @@
 version="this_pack_manifest_version"
 appname="appstore.driver.gpu.nvidia.user"
-desc="NVIDIA GPU 用户空间驱动包，提供 NVIDIA this_pack_nvidia_driver_version 用户空间驱动。<br>安装前必须先安装并启用匹配版本的 NVIDIA 内核空间驱动。<br>本应用安装用户空间驱动时不会安装 NVIDIA 内核模块、不会启用 DKMS。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
+desc="NVIDIA GPU 用户空间驱动包，提供 NVIDIA this_pack_nvidia_driver_version 用户空间驱动。<br>安装前必须先安装并启用匹配版本的 NVIDIA 内核空间驱动。<br>首次安装后可能启用失败，此时建议重启系统。<br>本应用安装用户空间驱动时不会安装 NVIDIA 内核模块、不会启用 DKMS。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
 display_name="NVIDIA GPU User Space Driver"
 maintainer="NVIDIA"
 platform="this_pack_manifest_platform"
