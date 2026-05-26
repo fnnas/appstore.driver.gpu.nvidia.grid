@@ -98,20 +98,20 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 
 | 当前内核 build number | 应选择的内核驱动包 |
 | --- | --- |
-| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz` |
-| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz` |
-| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz` |
+| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk` |
+| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz.fpk` |
+| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz.fpk` |
 
 例如截图中的系统是 `6.18.18-trim #473`，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 用户空间驱动包固定下载：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
 
 ### 2.2 为什么不直接使用官方应用中心驱动
@@ -155,13 +155,13 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 你需要下载两个包：
 
 1. 一个内核驱动包，根据 `uname -a` 的 build number 选择。
-2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz`。
+2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk`。
 
 以 `#473` 内核为例，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
 
 ### 3.2 使用 FNOS 下载工具下载
@@ -172,26 +172,29 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 
 如果下载工具支持多个链接，可以一次性添加内核驱动包和用户空间驱动包。
 
-### 3.3 修改文件扩展名
+### 3.3 确认文件扩展名
 
-下载得到的文件扩展名是 `.tgz`。为了通过 FNOS 本地应用安装入口识别，需要把文件名改为 `.tgz.fpk`。
+当前 GitHub Release 上传的安装包已经是 `.tgz.fpk` 扩展名，可以直接用于 FNOS 本地应用安装入口。
 
-例如：
-
-```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
-```
-
-改为：
+确认你下载到的文件名应类似：
 
 ```text
 appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
-用户空间驱动包同样改名：
+用户空间驱动包同样应是 `.tgz.fpk`：
 
 ```text
 appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+```
+
+#### 我下载的是tgz而不是fpk?
+
+如果你下载的是 GitHub Actions artifact 或历史发布中的 `.tgz` 文件，才需要手动把扩展名改为 `.tgz.fpk`。
+
+```text
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![修改扩展名](usage/9_rename_package.png)
@@ -200,7 +203,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 
 ### 4.1 安装内核驱动包
 
-打开 FNOS 应用中心或本地安装入口，选择改名后的内核驱动包：
+打开 FNOS 应用中心或本地安装入口，选择下载到的 `.tgz.fpk` 内核驱动包：
 
 ```text
 appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk

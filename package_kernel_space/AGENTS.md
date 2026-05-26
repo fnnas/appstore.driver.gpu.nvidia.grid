@@ -39,6 +39,7 @@ package_kernel_space/
 
 - `EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"` 是 CI 占位符。
 - `PROJ_NAME="appstore.driver.gpu.nvidia.ko"` 参与包内模块目录命名。
+- `kernel_space.yml` 上传 `.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`。
 - 所有错误既写 `LOG_FILE`，也在 `TRIM_TEMP_LOGFILE` 存在时写给 FNOS UI。
 - `status` 成功返回 `0`，未就绪返回 `3`。
 

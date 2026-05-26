@@ -224,12 +224,20 @@ jobs:
           name: ${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz
           path: release-assets/
 
+      - name: Rename package extension to fpk
+        run: |
+          set -euo pipefail
+          package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
+          fpk_name="${package_name}.fpk"
+          echo "Renaming ${package_name} to ${fpk_name}"
+          mv "release-assets/${package_name}" "release-assets/${fpk_name}"
+
       - name: Upload Release Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploading release assets..."
-          package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
+          package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz.fpk"
           echo "Uploading ${package_name}"
           gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
           echo "Upload completed!"

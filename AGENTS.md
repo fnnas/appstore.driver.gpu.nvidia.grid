@@ -47,6 +47,7 @@
 - `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common` 中的 `EXPECTED_DRIVER_VERSION` 是 CI 渲染占位符，不要手工写死发布值。
 - manifest 占位符名称必须和 workflow 中 `sed` 替换逻辑保持一致。
 - `app/app` 和 `app/ui` 是 CI 打包暂存目录；源码中只保留 `.gitkeep`。
+- GitHub Actions 中间 artifact 使用 `.tgz`，GitHub Release 上传前必须改名为 `.tgz.fpk`。
 - 本仓库没有 package manager 配置，也没有常规本地测试框架；以 `.github/workflows/static_checks.yml` 为静态检查权威来源。
 - shell 生命周期脚本没有 `.sh` 后缀；按 shebang 和 `bash -n` 识别，不要只搜索 `*.sh`。
 
@@ -54,7 +55,7 @@
 
 - 不要只改 README 或 docs 中的版本号而不改 `.github/workflows/test_release.yml`。
 - 不要让内核空间包和用户空间包的 NVIDIA 驱动版本不一致。
-- 不要把 NVIDIA `.run`、firmware、kernel modules、NVLTS 文件或最终 `.tgz` 产物提交进源码。
+- 不要把 NVIDIA `.run`、firmware、kernel modules、NVLTS 文件或最终 `.tgz` / `.tgz.fpk` 产物提交进源码。
 - 不要把本项目驱动和飞牛官方应用中心 NVIDIA 驱动描述为可共存；它们冲突。
 - 不要把 patch pattern 未命中当成 CI 硬失败；当前设计是输出 warning 并继续构建。
 - 不要把 `downloads/`、`drvpkg/`、`kernel/`、`release-assets/`、`*.tgz`、`*.run`、`package_*/app.tgz` 当作源码维护。
@@ -80,7 +81,7 @@ Windows/Git Bash 环境中，如果 `python3` 不存在可改用 `python`；如�
 ## NOTES
 
 - GitHub Actions 是构建和发布入口，本地没有等价的一键构建脚本。
-- `make_release=false` 只构建 artifacts；`make_release=true` 会创建 prerelease 并上传产物。
+- `make_release=false` 只构建 `.tgz` artifacts；`make_release=true` 会创建 prerelease，并在上传前把 `.tgz` 改名为 `.tgz.fpk`。
 - `gh release upload --clobber` 会覆盖同名 release asset，开启 `make_release=true` 前先确认版本号和产物名。
 - 用户安装顺序是内核空间包、重启、确认 `/proc/driver/nvidia/version`、再安装用户空间包。
-- FNOS 本地安装通常需要把下载的 `.tgz` 改名为 `.tgz.fpk`。
+- GitHub Release 资产应直接使用 `.tgz.fpk` 扩展名；只有调试 Actions artifact 或历史 `.tgz` 产物时才需要手动改名。

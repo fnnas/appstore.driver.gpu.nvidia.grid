@@ -55,11 +55,13 @@ docs/
 GitHub Actions 会生成以下最终包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
+
+内核空间和用户空间复用 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
 
 内核空间包包含：
 
@@ -84,7 +86,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
 - 调用 `nvlts.yml` 准备 NVLTS artifact
 - 调用 `kernel_space.yml` 编译内核模块并打包 `package_kernel_space`
 - 调用 `user_space.yml` 打包 `package_user_space`
-- 可选创建 GitHub prerelease 并上传产物
+- 可选创建 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
 
 关键变量集中维护在 `env`：
 
@@ -143,7 +145,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 下载 `nvidia-grid-firmware`
 - 替换 `package_kernel_space/manifest`
 - 生成 `app.tgz`
-- 按内核版本分别打出最终 `.tgz`
+- 按内核版本分别打出 `.tgz` artifact，发布 Release 前由 `test_release.yml` 改名为 `.tgz.fpk`
 
 ### `user_space.yml`
 
@@ -154,10 +156,16 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 下载 `nvlts` artifact 到 `app/nvlts/`
 - 替换 `package_user_space/manifest`
 - 生成 `app.tgz`
-- 打出用户空间驱动包：
+- 打出用户空间驱动包 artifact：
 
 ```text
 appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
+```
+
+发布 Release 前，`test_release.yml` 会将该 artifact 改名为：
+
+```text
+appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 ```
 
 ### `static_checks.yml`
@@ -455,6 +463,7 @@ ${TRIM_TEMP_LOGFILE}
 4. 如新增内核或架构
    - 在 `kernel_space.yml` 的 matrix 中加入对应目标
    - 在 `test_release.yml` 的 release 上传矩阵中加入对应最终包目标
+   - 确认 release 上传流程仍先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`
    - 同步维护矩阵中的 `manifest_platform`
 
 5. 如调整包名

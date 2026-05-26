@@ -26,7 +26,7 @@
 每次安装至少需要下载两个包：
 
 1. 一个内核空间驱动包，根据 FNOS 内核版本和 build number 选择。
-2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz`。
+2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk`。
 
 内核驱动包选择规则：先确认内核版本，例如 `6.18.18-trim`；再根据同一内核版本下的 build number 选择对应包。后续如果支持新的 FNOS/TRIM 内核版本，会增加新的内核版本分组。
 
@@ -34,9 +34,9 @@
 
 | 当前内核版本         | 当前内核 build number | 应选择的内核驱动包                                                               |
 |----------------|-------------------|-------------------------------------------------------------------------|
-| `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz` |
-| `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz` |
-| `6.18.18-trim` | `#587` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz` |
+| `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#587` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz.fpk` |
 
 安装前在 FNOS 控制台或 SSH 中执行：
 
@@ -74,4 +74,4 @@ uname -a
 https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 ```
 
-FNOS 本地安装时通常需要把下载到的 `.tgz` 文件改名为 `.tgz.fpk`。
+GitHub Release 中的安装包会以 `.tgz.fpk` 扩展名发布，可直接用于 FNOS 本地安装。只有下载 GitHub Actions artifact 或历史 `.tgz` 产物时，才需要手动改名为 `.tgz.fpk`。

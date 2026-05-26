@@ -39,6 +39,7 @@ package_user_space/
 ## CONVENTIONS
 
 - `EXPECTED_DRIVER_VERSION` 和 `NVIDIA_RUN_FILE` 都是 CI 占位符。
+- `user_space.yml` 上传 `.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`。
 - NVLTS artifact 必须包含 `nvlts` 二进制和 `configs` 目录。
 - `write_gridd_conf` 使用 heredoc 覆盖 `/etc/nvidia/gridd.conf`，保留 NVIDIA 模板注释。
 - 卸载失败通过 `report_error` 写日志并返回非零；清理后会 `systemctl daemon-reload`。
