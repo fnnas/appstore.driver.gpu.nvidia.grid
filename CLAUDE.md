@@ -121,13 +121,13 @@ bash -n package_user_space/cmd/main
 bash -n package_user_space/cmd/write_gridd_conf
 ```
 
-构建和发布打包由 GitHub Actions 编排，不是由仓库内的本地构建脚本完成。入口 workflow 是 `.github/workflows/test_release.yml`：`make_release=false` 时只构建 `.tgz` artifacts，不创建 release；`make_release=true` 时会创建 prerelease，将待上传产物从 `.tgz` 改名为 `.tgz.fpk`，再上传 GitHub Release 资产。
+构建和发布打包由 GitHub Actions 编排，不是由仓库内的本地构建脚本完成。入口 workflow 是 `.github/workflows/test_release.yml`：`make_release=false` 时只构建 `.tgz` artifacts，不创建 release；`make_release=true` 时会创建按北京时间命名的 prerelease，例如 tag `2026.05.26-20-03-42`、title `fnnas.appstore.driver.gpu.nvidia.grid 2026.05.26 20:03:42`，将待上传产物从 `.tgz` 改名为 `.tgz.fpk`，再把当前矩阵中所有驱动版本的资产上传到同一个 GitHub Release。
 
 ## 高层架构
 
 这个仓库的核心是 GitHub Actions artifact 流水线，加上两套 FNOS 应用包目录。
 
-`.github/workflows/test_release.yml` 是总入口。它集中维护项目名、包名和驱动版本矩阵，矩阵中包含应用包版本、NVIDIA 驱动版本、GRID runfile 下载地址和文件名，以及可选的 NVLTS 版本。它依次调用复用 workflow 来准备 NVIDIA GRID 安装器、为 `580.159.03-3` 准备 NVLTS、构建内核空间包、打包用户空间包，并在需要时按应用包版本创建 GitHub Release、把下载到 `release-assets/` 的 `.tgz` artifact 改名为 `.tgz.fpk` 后上传。
+`.github/workflows/test_release.yml` 是总入口。它集中维护项目名、包名和驱动版本矩阵，矩阵中包含应用包版本、NVIDIA 驱动版本、GRID runfile 下载地址和文件名，以及可选的 NVLTS 版本。它依次调用复用 workflow 来准备 NVIDIA GRID 安装器、为 `580.159.03-3` 准备 NVLTS、构建内核空间包、打包用户空间包，并在需要时创建一个时间戳 release，把下载到 `release-assets/` 的 `.tgz` artifact 改名为 `.tgz.fpk` 后上传。
 
 `.github/workflows/nvidia-grid-kernel-src.yml` 下载 NVIDIA GRID `.run` 安装器，将其解包到 `drvpkg`，通过 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试修改 `drvpkg/kernel/nvidia/nv-kernel.o_binary`，再按驱动版本发布三个 artifact：`nvidia-grid-kernel-src-<driver>` 保存 kernel source，`nvidia-grid-firmware-<driver>` 保存 firmware，`nvidia-grid-runfile-<driver>` 保存原始 `.run` 文件。patch 逻辑是 pattern 命中多少就替换多少；未命中的 pattern 会按名称输出 warning；脚本级失败也只输出 warning 并继续构建。
 

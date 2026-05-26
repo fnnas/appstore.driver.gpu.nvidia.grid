@@ -47,8 +47,8 @@ jobs:
               ("535.309.01-1", "535.309.01"),
           }
           expected_counts = {
-              "580.159.03-3": 10,
-              "535.309.01-1": 9,
+              "580.159.03-3": 8,
+              "535.309.01-1": 7,
           }
           pairs = set(re.findall(
               r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
@@ -238,23 +238,32 @@ jobs:
       - package_kernel_space
       - package_user_space
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-          - this_pack_version: "535.309.01-1"
+    outputs:
+      release_tag: ${{ steps.vars.outputs.release_tag }}
+      release_title: ${{ steps.vars.outputs.release_title }}
     steps:
+      - name: Prepare release tag
+        id: vars
+        run: |
+          release_title="$(TZ=Asia/Shanghai date '+%Y.%m.%d %H:%M:%S')"
+          release_tag="$(printf '%s' "${release_title}" | tr ' :' '--')"
+          {
+            echo "release_title=${release_title}"
+            echo "release_tag=${release_tag}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release title: ${release_title}"
+          echo "Release tag: ${release_tag}"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view "${{ matrix.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Release ${{ matrix.this_pack_version }} already exists, skipping create."
+          if gh release view "${{ steps.vars.outputs.release_tag }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.vars.outputs.release_tag }} already exists, skipping create."
           else
-            gh release create "${{ matrix.this_pack_version }}" \
+            gh release create "${{ steps.vars.outputs.release_tag }}" \
               --repo "${GITHUB_REPOSITORY}" \
-              --title "fnnas.appstore.driver.gpu.nvidia.grid-${{ matrix.this_pack_version }}" \
+              --title "fnnas.appstore.driver.gpu.nvidia.grid ${{ steps.vars.outputs.release_title }}" \
               --prerelease
           fi
 
@@ -313,24 +322,19 @@ jobs:
           echo "Uploading release assets..."
           package_name="${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz.fpk"
           echo "Uploading ${package_name}"
-          gh release upload "${{ matrix.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release upload "${{ needs.create_release.outputs.release_tag }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
           echo "Upload completed!"
 
   verify_release_assets:
     if: ${{ inputs.make_release }}
     needs:
       - upload_release_assets
+      - create_release
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-          - this_pack_version: "535.309.01-1"
     steps:
       - name: Verify Uploaded Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploaded assets for ${{ matrix.this_pack_version }}:"
-          gh release view "${{ matrix.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" --json assets -q '.assets[].name'
+          echo "Uploaded assets for ${{ needs.create_release.outputs.release_tag }}:"
+          gh release view "${{ needs.create_release.outputs.release_tag }}" --repo "${GITHUB_REPOSITORY}" --json assets -q '.assets[].name'

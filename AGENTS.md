@@ -79,7 +79,7 @@ Windows/Git Bash 环境中，如果 `python3` 不存在可改用 `python`；如�
 ## NOTES
 
 - GitHub Actions 是构建和发布入口，本地没有等价的一键构建脚本。
-- `make_release=false` 只构建 `.tgz` artifacts；`make_release=true` 会创建 prerelease，并在上传前把 `.tgz` 改名为 `.tgz.fpk`。
-- `gh release upload --clobber` 会覆盖同名 release asset，开启 `make_release=true` 前先确认版本号和产物名。
+- `make_release=false` 只构建 `.tgz` artifacts；`make_release=true` 会创建按北京时间命名的 prerelease，例如 tag `2026.05.26-20-03-42`，并在上传前把 `.tgz` 改名为 `.tgz.fpk`。
+- `gh release upload --clobber` 会覆盖同名 release asset，开启 `make_release=true` 前先确认矩阵版本号和产物名。
 - 用户安装顺序是内核空间包、重启、确认 `/proc/driver/nvidia/version`、再安装用户空间包。
 - GitHub Release 资产应直接使用 `.tgz.fpk` 扩展名；只有调试 Actions artifact 或历史 `.tgz` 产物时才需要手动改名。

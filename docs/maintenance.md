@@ -91,9 +91,18 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 - 调用 `nvlts.yml` 为 `580.159.03-3` 准备 NVLTS artifact
 - 调用 `kernel_space.yml` 编译内核模块并打包 `package_kernel_space`
 - 调用 `user_space.yml` 打包 `package_user_space`
-- 可选为每个应用包版本创建 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
+- 可选创建一个按发布时间命名的 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
 
-驱动版本集中维护在 `test_release.yml` 的 matrix 中。新增驱动版本时，需要同步维护准备驱动包、内核空间打包、用户空间打包、创建 release、上传 release asset、校验 release asset 这些 matrix：
+开启 `make_release=true` 时，`test_release.yml` 会按北京时间生成 release 名称，例如：
+
+```text
+title: fnnas.appstore.driver.gpu.nvidia.grid 2026.05.26 20:03:42
+tag: 2026.05.26-20-03-42
+```
+
+Git tag 不使用空格和冒号，release title 保留常见时间格式用于显示。同一个 release 会包含当前矩阵中所有驱动版本的最终安装包。
+
+驱动版本集中维护在 `test_release.yml` 的 matrix 中。新增驱动版本时，需要同步维护准备驱动包、内核空间打包、用户空间打包和上传 release asset 这些 matrix：
 
 ```yaml
 - this_pack_version: "580.159.03-3"
@@ -503,7 +512,7 @@ ${TRIM_TEMP_LOGFILE}
 - `appstore.driver.gpu.nvidia.ko` 仍用于内核空间应用包名和内核模块目录前缀。
 - `appstore.driver.gpu.nvidia.user` 用于用户空间应用包名。
 - 内核空间和用户空间驱动版本必须一致。
-- 同一个 release tag 只放同一个 NVIDIA 驱动版本的内核空间包和用户空间包，不要混放不同驱动版本。
+- release tag 使用发布时间，不使用 NVIDIA 驱动版本或应用包版本；同一个 release 可以包含当前矩阵中的多个 NVIDIA 驱动版本。
 - 宿主机 vGPU KVM 驱动和客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 版本组合。
 - NVIDIA kernel binary patch 的 pattern 未命中不会阻塞构建，但会按 pattern 名称输出 warning；脚本级失败也只会输出 warning 并继续构建。维护发布包时需要检查 workflow 日志，确认实际 patch 情况。
 - 本项目与飞牛官方应用中心 NVIDIA 驱动存在冲突，不应同时安装或启用。
