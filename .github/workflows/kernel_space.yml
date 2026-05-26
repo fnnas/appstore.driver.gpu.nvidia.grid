@@ -16,7 +16,7 @@ on:
       this_pack_nvidia_driver_version:
         required: true
         type: string
-      this_pack_nvidia_driver_url:
+      this_pack_nvidia_driver_page_url:
         required: true
         type: string
       driver_pkg_artifact:
@@ -59,8 +59,9 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPRESS: "true"
       CCACHE_MAXSIZE: 1G
-      CCACHE_KEY: ccache-${{ matrix.kernel_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-      CCACHE_RESTORE_PREFIX: ccache-${{ matrix.kernel_name }}-
+      CCACHE_KEY_PREFIX: ccache-${{ matrix.kernel_name }}-${{ inputs.this_pack_nvidia_driver_version }}
+      CCACHE_KEY: ccache-${{ matrix.kernel_name }}-${{ inputs.this_pack_nvidia_driver_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+      CCACHE_RESTORE_PREFIX: ccache-${{ matrix.kernel_name }}-${{ inputs.this_pack_nvidia_driver_version }}-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6
@@ -163,7 +164,7 @@ jobs:
         run: |
           sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/manifest
-          sed "s|this_pack_nvidia_driver_url|${{ inputs.this_pack_nvidia_driver_url }}|g" -i ./package_kernel_space/manifest
+          sed "s|this_pack_nvidia_driver_page_url|${{ inputs.this_pack_nvidia_driver_page_url }}|g" -i ./package_kernel_space/manifest
           sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_manifest_kernel/${{ env.kernel_name }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/cmd/common

@@ -22,20 +22,18 @@
 
 | Task | Location | Notes |
 |------|----------|-------|
-| 调整驱动版本、包版本、GRID runfile 或 NVLTS | `.github/workflows/test_release.yml` | `this_pack_version` 是应用包版本，`this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本。 |
+| 调整驱动版本、包版本、GRID runfile 或 NVLTS | `.github/workflows/test_release.yml` | 驱动版本清单使用 `this_pack_version`、`this_pack_nvidia_driver_version`、`this_pack_grid_download_url`、`this_pack_grid_run`。 |
 | 修改内核模块构建目标 | `.github/workflows/kernel_space.yml`、`.github/workflows/test_release.yml`、`package_kernel_space/cmd/main` | matrix、release 上传 matrix、运行时选择逻辑必须同步。 |
 | 修改用户空间打包流程 | `.github/workflows/user_space.yml`、`package_user_space/cmd/common` | `.run` 文件名由 `this_pack_grid_run` 渲染。 |
 | 修改 FNOS 内核空间安装行为 | `package_kernel_space/cmd/main`、`package_kernel_space/cmd/common` | 涉及 firmware、alternatives、`depmod`、nouveau blacklist、initramfs。 |
-| 修改 FNOS 用户空间安装行为 | `package_user_space/cmd/main`、`package_user_space/cmd/common`、`package_user_space/cmd/write_gridd_conf` | 先校验内核驱动版本，再安装用户空间驱动和 NVLTS。 |
+| 修改 FNOS 用户空间安装行为 | `package_user_space/cmd/main`、`package_user_space/cmd/common`、`package_user_space/cmd/write_gridd_conf` | 先校验内核驱动版本，再安装用户空间驱动；NVLTS 仅 580 包启用。 |
 | 修改 NVIDIA binary patch 规则 | `scripts/patch-nvidia-grid-kernel-binary.py` | pattern 未命中只 warning，不阻塞 CI。 |
 | 修改用户文档 | `readme.md`、`docs/usage.md`、`docs/maintenance.md` | 版本号必须和 workflow 保持一致。 |
 
 ## CURRENT VERSION CONTRACT
 
-- vGPU 分支：GRID 19.5。
-- 宿主机 vGPU KVM 驱动示例：`580.159.01`。
-- 客户机 GRID 驱动：`580.159.03`。
-- 应用包版本：`580.159.03-2`。
+- 当前支持 GRID 19.5：宿主机示例 `580.159.01`，客户机 `580.159.03`，应用包版本 `580.159.03-3`。
+- 当前支持 GRID 16.14：宿主机示例 `535.309.01`，客户机 `535.309.01`，应用包版本 `535.309.01-1`。
 - 支持内核：`6.18.18-trim`。
 - 当前内核包分组：`427`、`570`、`587`。
 

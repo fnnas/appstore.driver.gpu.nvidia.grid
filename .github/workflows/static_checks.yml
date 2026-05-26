@@ -52,15 +52,23 @@ jobs:
           from pathlib import Path
 
           workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
-          package_version_match = re.search(r'this_pack_version: "([^"]+)"', workflow)
-          driver_version_match = re.search(r'this_pack_nvidia_driver_version: "([^"]+)"', workflow)
-          if not package_version_match or not driver_version_match:
-              print("Unable to read this_pack_version or this_pack_nvidia_driver_version from test_release.yml")
+          version_pairs = {
+              (this_pack_nvidia_driver_version, this_pack_version)
+              for this_pack_version, this_pack_nvidia_driver_version in re.findall(
+                  r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
+                  workflow,
+                  flags=re.M,
+              )
+          }
+          if not version_pairs:
+              print("Unable to read this_pack_version and this_pack_nvidia_driver_version pairs from test_release.yml")
               raise SystemExit(1)
-
-          package_version = package_version_match.group(1)
-          driver_version = driver_version_match.group(1)
-          version_pattern = re.compile(rf'{re.escape(driver_version)}-\d+(?![\d.])')
+          expected_packages = {}
+          for this_pack_nvidia_driver_version, this_pack_version in version_pairs:
+              previous = expected_packages.setdefault(this_pack_nvidia_driver_version, this_pack_version)
+              if previous != this_pack_version:
+                  print(f"{this_pack_nvidia_driver_version}: multiple package versions found: {previous}, {this_pack_version}")
+                  raise SystemExit(1)
           paths = [
               Path("readme.md"),
               Path("docs/usage.md"),
@@ -72,10 +80,12 @@ jobs:
           failed = False
           for path in paths:
               text = path.read_text(encoding="utf-8")
-              for match in sorted(set(version_pattern.findall(text))):
-                  if match != package_version:
-                      print(f"{path}: package version {match} does not match this_pack_version {package_version}")
-                      failed = True
+              for this_pack_nvidia_driver_version, this_pack_version in sorted(expected_packages.items()):
+                  version_pattern = re.compile(rf'{re.escape(this_pack_nvidia_driver_version)}-\d+(?![\d.])')
+                  for match in sorted(set(version_pattern.findall(text))):
+                      if match != this_pack_version:
+                          print(f"{path}: package version {match} does not match {this_pack_nvidia_driver_version} package version {this_pack_version}")
+                          failed = True
 
           raise SystemExit(1 if failed else 0)
           PY

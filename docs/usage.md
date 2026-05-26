@@ -2,16 +2,17 @@
 
 本文面向在 FNOS / 飞牛 NAS 虚拟机中安装 NVIDIA GRID 驱动的中阶玩家（高阶玩家自己会编译），按实际操作顺序说明如何选择驱动包、安装内核空间驱动、安装用户空间驱动，并验证影视转码、相册 AI 加速和系统信息识别是否正常。
 
-当前教程对应驱动版本：
+当前教程默认以 GRID 19.5 / `580.159.03` 为例。本项目也提供 GRID 16.14 / `535.309.01` 包，安装步骤相同，但必须整套选择同一驱动版本。
 
 - 宿主机 NVIDIA 驱动：`NVIDIA-Linux-x86_64-580.159.01-vgpu-kvm-patch.run`
 - 客户机 NVIDIA Grid 驱动：`580.159.03`
+- 可选客户机 NVIDIA Grid 驱动：`535.309.01`
 - 内核驱动包：`appstore.driver.gpu.nvidia.ko`
 - 用户空间驱动包：`appstore.driver.gpu.nvidia.user`
 
 > 重要提醒：安装驱动会修改系统内核模块、firmware、initramfs 和 NVIDIA 用户空间库。开始前务必给虚拟机打快照，方便安装失败或版本不匹配时回滚。
 
-> 版本匹配提醒：FNOS 虚拟机里的 GRID 客户机驱动必须与宿主机上的 NVIDIA vGPU KVM 驱动匹配。本文示例使用的组合是宿主机 `NVIDIA-Linux-x86_64-580.159.01-vgpu-kvm-patch.run`，客户机 GRID 驱动 `580.159.03`，这个驱动同属于GRID 19.5。不要随意混用不同 vGPU 版本分支的宿主机驱动和客户机驱动。
+> 版本匹配提醒：FNOS 虚拟机里的 GRID 客户机驱动必须与宿主机上的 NVIDIA vGPU KVM 驱动匹配。本文示例使用的组合是宿主机 `NVIDIA-Linux-x86_64-580.159.01-vgpu-kvm-patch.run`，客户机 GRID 驱动 `580.159.03`，这个驱动同属于 GRID 19.5。使用 `535.309.01` 时，应搭配 GRID 16.14 分支的宿主机 vGPU KVM 驱动。不要随意混用不同 vGPU 版本分支的宿主机驱动和客户机驱动。
 
 ## 1. 安装前准备
 
@@ -33,6 +34,13 @@
 ```text
 宿主机：NVIDIA-Linux-x86_64-580.159.01-vgpu-kvm-patch.run
 客户机：NVIDIA-Linux-x86_64-580.159.03-grid.run
+```
+
+本项目同时提供 GRID 16.14 包：
+
+```text
+宿主机：NVIDIA-Linux-x86_64-535.309.01-vgpu-kvm.run
+客户机：NVIDIA-Linux-x86_64-535.309.01-grid.run
 ```
 
 如果宿主机 vGPU KVM 驱动和客户机 GRID 驱动不匹配，可能出现 GPU 无法初始化、授权状态异常、`nvidia-smi` 无法识别 vGPU、或应用调用 GPU 失败等问题。
@@ -98,20 +106,34 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 
 | 当前内核 build number | 应选择的内核驱动包 |
 | --- | --- |
-| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk` |
-| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz.fpk` |
-| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz.fpk` |
+| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
+| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
+| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
+
+如果选择 `535.309.01`，内核 build number 规则不变，只把包名中的应用包版本替换为 `535.309.01-1`：
+
+| 当前内核 build number | 应选择的 535 内核驱动包 |
+| --- | --- |
+| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk` |
+| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk` |
+| `#587` 及以上 | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk` |
 
 例如截图中的系统是 `6.18.18-trim #473`，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 用户空间驱动包固定下载：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+```
+
+如果选择 `535.309.01`，用户空间驱动包固定下载：
+
+```text
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### 2.2 为什么不直接使用官方应用中心驱动
@@ -147,7 +169,13 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 选择当前版本，例如：
 
 ```text
-580.159.03-2
+580.159.03-3
+```
+
+如果宿主机使用 GRID 16.14 分支，则选择：
+
+```text
+535.309.01-1
 ```
 
 ![选择驱动包](usage/7_select_driver.png)
@@ -155,13 +183,20 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 你需要下载两个包：
 
 1. 一个内核驱动包，根据 `uname -a` 的 build number 选择。
-2. 一个用户空间驱动包，固定选择 `appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk`。
+2. 一个同版本用户空间驱动包，例如 `appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk`。
 
 以 `#473` 内核为例，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+```
+
+GRID 16.14 / `535.309.01` 的同版本示例是：
+
+```text
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### 3.2 使用 FNOS 下载工具下载
@@ -179,13 +214,19 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 确认你下载到的文件名应类似：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 用户空间驱动包同样应是 `.tgz.fpk`：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+```
+
+选择 535 版本时对应为：
+
+```text
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 #### 我下载的是tgz而不是fpk?
@@ -193,8 +234,8 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 如果你下载的是 GitHub Actions artifact 或历史发布中的 `.tgz` 文件，才需要手动把扩展名改为 `.tgz.fpk`。
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![修改扩展名](usage/9_rename_package.png)
@@ -206,7 +247,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
 打开 FNOS 应用中心或本地安装入口，选择下载到的 `.tgz.fpk` 内核驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![安装内核驱动包](usage/10_install_package.png)
@@ -282,7 +323,7 @@ NVIDIA UNIX x86_64 Kernel Module  580.159.03
 确认内核驱动已经正常加载后，再安装用户空间驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 ![安装用户空间驱动](usage/14_install_user.png)
@@ -295,11 +336,13 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 
 只有当前内核空间驱动版本是 `580.159.03` 时才会继续安装。这样可以避免用户空间库和内核模块版本不一致。
 
+如果安装的是 `535.309.01-1` 用户空间包，则这里只允许当前内核空间驱动版本为 `535.309.01`。
+
 ### 5.2 等待用户空间驱动安装完成
 
 用户空间驱动安装过程会执行 NVIDIA `.run` 安装器，但不会安装内核模块，也不会启用 DKMS。
 
-安装完成后还会安装 NVLTS，并重启依赖 NVIDIA 用户空间库的系统服务。
+安装 `580.159.03-3` 用户空间包时还会安装 NVLTS，并重启依赖 NVIDIA 用户空间库的系统服务。`535.309.01-1` 用户空间包不包含也不会安装 NVLTS。
 
 ![等待用户空间驱动安装](usage/16_wait_user.png)
 
@@ -308,7 +351,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 如果反复安装失败，优先检查：
 
 - 是否已经安装并重启内核驱动
-- `/proc/driver/nvidia/version` 是否是 `580.159.03`
+- `/proc/driver/nvidia/version` 是否是所选用户空间包对应的驱动版本
 - 用户空间驱动包是否和内核驱动包版本一致
 - 必要时在issue提交系统日志
 
@@ -483,6 +526,12 @@ nvidia-smi
 580.159.03
 ```
 
+如果安装的是 `535.309.01-1`，两边都应该显示：
+
+```text
+535.309.01
+```
+
 ### 9.6 安装失败后怎么办？
 
 优先按顺序检查：
@@ -507,4 +556,4 @@ vGPU 场景下，宿主机驱动负责创建和管理虚拟 GPU，客户机 GRID
 客户机 GRID 驱动：580.159.03
 ```
 
-这两个版本来自同一套 vGPU 驱动组合，因此可以配套使用。升级时也应同时关注宿主机驱动和客户机驱动，不建议只单独替换其中一边。
+这两个版本来自同一套 vGPU 驱动组合，因此可以配套使用。`535.309.01` 则应使用 GRID 16.14 分支对应的宿主机和客户机组合。升级时也应同时关注宿主机驱动和客户机驱动，不建议只单独替换其中一边。

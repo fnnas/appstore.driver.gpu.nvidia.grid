@@ -8,7 +8,7 @@
 
 | Task | Location | Notes |
 |------|----------|-------|
-| 总入口和版本变量 | `test_release.yml` | `proj_name`、包名、驱动版本、runfile URL、NVLTS 版本都在 `env`。 |
+| 总入口和版本变量 | `test_release.yml` | 包名在 `env`，驱动版本、runfile URL、NVLTS 版本在各 job 的 matrix。 |
 | 准备 NVIDIA GRID 安装器 | `nvidia-grid-kernel-src.yml` | 下载 `.run`、解包 `drvpkg`、执行 binary patch、上传源码/firmware/runfile artifact。 |
 | 准备 NVLTS | `nvlts.yml` | 未指定版本时从 GitLab API 解析最新 release。 |
 | 编译内核模块 | `kernel_space.yml` | matrix 使用 FNOS 内核头文件容器。 |
@@ -20,20 +20,22 @@
 ```text
 test_release.yml
 ├── nvidia-grid-kernel-src.yml
-│   ├── nvidia-grid-kernel-src  -> kernel_space.yml
-│   ├── nvidia-grid-firmware    -> kernel_space.yml
-│   └── nvidia-grid-runfile     -> user_space.yml
+│   ├── nvidia-grid-kernel-src-<driver>  -> kernel_space.yml
+│   ├── nvidia-grid-firmware-<driver>    -> kernel_space.yml
+│   └── nvidia-grid-runfile-<driver>     -> user_space.yml
 ├── nvlts.yml
-│   └── nvlts                  -> user_space.yml
+│   └── nvlts-580.159.03       -> user_space.yml for 580 only
 ├── kernel_space.yml            -> appstore.driver.gpu.nvidia.ko-<version>-<kernel>.tgz
 └── user_space.yml              -> appstore.driver.gpu.nvidia.user-<version>-x86.tgz
 ```
 
 ## CONVENTIONS
 
-- `this_pack_version` 是应用包版本，例如 `580.159.03-2`。
+- `this_pack_version` 是应用包版本，例如 `580.159.03-3`。
 - `this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本，例如 `580.159.03`。
 - `this_pack_grid_run` 必须和下载 URL 最终文件名、用户空间 `cmd/common` 渲染结果一致。
+- 多个驱动版本并行构建时，源码、firmware、runfile artifact 名称必须带驱动版本后缀。
+- NVLTS 当前仅 `580.159.03-3` 用户空间包启用，535 用户空间包不下载、不打包、不安装 NVLTS。
 - 内核空间包 release 上传 matrix 必须覆盖 `kernel_space.yml` 的全部 matrix。
 - `manifest_platform` 当前为应用中心 `x86`，内核构建架构当前为 `amd64`。
 

@@ -40,12 +40,13 @@ docs/
 
 两个 package 的 `cmd/common` 分别保存各自生命周期脚本复用的变量、日志函数和错误展示函数。它们会随对应 package 一起打包，不依赖另一个 package。
 
-## 当前版本
+## 当前支持版本
 
-- NVIDIA GRID 客户机驱动版本：`580.159.03`
-- 应用包版本：`580.159.03-2`
-- vGPU 分支：GRID 19.5
-- 宿主机 vGPU KVM 驱动示例：`580.159.01`
+| vGPU 分支 | 宿主机 vGPU KVM 驱动示例 | NVIDIA GRID 客户机驱动版本 | 应用包版本 |
+| --- | --- | --- | --- |
+| GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
+| GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
+
 - 当前支持内核：`6.18.18-trim`
 - 当前构建架构：`amd64`
 - 应用中心 `platform`：`x86`
@@ -55,10 +56,14 @@ docs/
 GitHub Actions 会生成以下最终包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-570-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-2-6.18.18-trim-587-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 内核空间和用户空间复用 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
@@ -72,7 +77,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 用户空间包包含：
 
 - NVIDIA `.run` 安装器：`app/NVIDIA-Linux-x86_64-580.159.03-grid.run`
-- NVLTS 文件：`app/nvlts/`
+- NVLTS 文件：`app/nvlts/`，仅 `580.159.03-3` 用户空间包包含
 - 用户空间驱动包元数据和生命周期脚本：`package_user_space/`
 
 ## Workflow 说明
@@ -81,24 +86,30 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 
 主入口 workflow，负责整体编排：
 
-- 定义项目名、包版本、NVIDIA 驱动下载地址、NVLTS 版本
+- 定义项目名、包名和驱动版本矩阵
 - 调用 `nvidia-grid-kernel-src.yml` 准备 NVIDIA 源码、firmware 和 `.run` 安装器
-- 调用 `nvlts.yml` 准备 NVLTS artifact
+- 调用 `nvlts.yml` 为 `580.159.03-3` 准备 NVLTS artifact
 - 调用 `kernel_space.yml` 编译内核模块并打包 `package_kernel_space`
 - 调用 `user_space.yml` 打包 `package_user_space`
-- 可选创建 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
+- 可选为每个应用包版本创建 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
 
-关键变量集中维护在 `env`：
+驱动版本集中维护在 `test_release.yml` 的 matrix 中。新增驱动版本时，需要同步维护准备驱动包、内核空间打包、用户空间打包、创建 release、上传 release asset、校验 release asset 这些 matrix：
 
 ```yaml
-proj_name: "appstore.driver.gpu.nvidia.grid"
-kernel_module_package_name: "appstore.driver.gpu.nvidia.ko"
-this_pack_version: "580.159.03-2"
-this_pack_nvidia_driver_version: "580.159.03"
-this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-this_pack_grid_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
-this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
-this_pack_nvlts_version: ""
+- this_pack_version: "580.159.03-3"
+  this_pack_nvidia_driver_version: "580.159.03"
+  this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
+  this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
+  this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
+  this_pack_nvlts_version: ""
+  this_pack_enable_nvlts: true
+- this_pack_version: "535.309.01-1"
+  this_pack_nvidia_driver_version: "535.309.01"
+  this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
+  this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/16.14/NVIDIA-GRID-Linux-KVM-535.309.01-539.72/Guest_Drivers/NVIDIA-Linux-x86_64-535.309.01-grid.run"
+  this_pack_grid_run: "NVIDIA-Linux-x86_64-535.309.01-grid.run"
+  this_pack_nvlts_version: ""
+  this_pack_enable_nvlts: false
 ```
 
 ### `nvidia-grid-kernel-src.yml`
@@ -108,9 +119,9 @@ this_pack_nvlts_version: ""
 - 下载并缓存 NVIDIA `.run` 文件
 - 执行 `--extract-only --target drvpkg`
 - 在独立的 `Patch NVIDIA kernel binary` step 中使用 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试 patch `drvpkg/kernel/nvidia/nv-kernel.o_binary`
-- 在独立的 `Pack NVIDIA kernel source` step 中将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src`
-- 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware`
-- 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile`
+- 在独立的 `Pack NVIDIA kernel source` step 中将 `drvpkg/kernel` 打包为 `nvidia-grid-kernel-src-<驱动版本>`
+- 将 `drvpkg/firmware` 作为目录 artifact 上传为 `nvidia-grid-firmware-<驱动版本>`
+- 将 NVIDIA `.run` 安装包上传为 `nvidia-grid-runfile-<驱动版本>`
 
 patch 逻辑会按规则逐条匹配；命中的 pattern 会全部替换，未命中的 pattern 会按名称输出 GitHub Actions warning，但不会阻塞构建。脚本级失败同样会输出 warning，并继续使用当前 `drvpkg/kernel` 打包 artifact。
 
@@ -123,8 +134,8 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 默认从 `https://git.collinwebdesigns.de/vgpu/nvlts` 解析最新 release
 - 下载 `nvlts_<version>_linux_amd64.tar.gz`
 - 使用 cache 避免重复下载
-- 解包并上传为 `nvlts` artifact
-- `user_space.yml` 会将该 artifact 恢复到 `app/nvlts/` 并打入用户空间驱动包
+- 解包并上传为 `nvlts-580.159.03` artifact
+- `user_space.yml` 仅在 `enable_nvlts=true` 时恢复该 artifact 到 `app/nvlts/` 并打入用户空间驱动包
 
 ### `kernel_space.yml`
 
@@ -138,11 +149,11 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 
 执行流程：
 
-- 下载 `nvidia-grid-kernel-src`
+- 下载当前驱动版本对应的 `nvidia-grid-kernel-src-<驱动版本>`
 - 解出 `kernel/`，该 artifact 在 patch pattern 命中时包含已 patch 的 kernel source，未命中或脚本级失败时保持当前 kernel source
 - 在对应内核头文件容器中执行 `make -j"$(nproc)"`
 - 收集编译出的 `*.ko`
-- 下载 `nvidia-grid-firmware`
+- 下载当前驱动版本对应的 `nvidia-grid-firmware-<驱动版本>`
 - 替换 `package_kernel_space/manifest`
 - 生成 `app.tgz`
 - 按内核版本分别打出 `.tgz` artifact，发布 Release 前由 `test_release.yml` 改名为 `.tgz.fpk`
@@ -151,21 +162,33 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 
 负责用户空间驱动包的打包：
 
-- 下载 `nvidia-grid-runfile`
+- 下载当前驱动版本对应的 `nvidia-grid-runfile-<驱动版本>`
 - 将 NVIDIA `.run` 安装包放入 `app/`
-- 下载 `nvlts` artifact 到 `app/nvlts/`
+- 当 `enable_nvlts=true` 时下载对应的 `nvlts-<驱动版本>` artifact 到 `app/nvlts/`
 - 替换 `package_user_space/manifest`
 - 生成 `app.tgz`
 - 打出用户空间驱动包 artifact：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz
+```
+
+`535.309.01` 对应 artifact 为：
+
+```text
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz
 ```
 
 发布 Release 前，`test_release.yml` 会将该 artifact 改名为：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
+appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+```
+
+`535.309.01` 对应为：
+
+```text
+appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### `static_checks.yml`
@@ -174,7 +197,7 @@ appstore.driver.gpu.nvidia.user-580.159.03-2-x86.tgz.fpk
 
 - 校验 README、文档、`CLAUDE.md`、manifest 和 patch 脚本可以按 UTF-8 读取
 - 检查明显乱码标记
-- 校验文档中的应用包版本与 `test_release.yml` 的 `this_pack_version` 一致
+- 校验文档中的应用包版本与 `test_release.yml` 的 `this_pack_version` / `this_pack_nvidia_driver_version` 矩阵一致
 - 对 `scripts/patch-nvidia-grid-kernel-binary.py` 执行 `python3 -m py_compile`
 - 对 `package_kernel_space/cmd` 和 `package_user_space/cmd` 下的 shell 脚本执行 `bash -n`
 
@@ -359,7 +382,7 @@ package_user_space/cmd/main
 
 该安装流程不会安装 NVIDIA 内核模块，也不会启用 DKMS；它要求 `package_kernel_space` 已经安装并启用了匹配版本的内核空间驱动。
 
-用户空间驱动安装成功后会安装 NVLTS：
+`580.159.03-3` 用户空间驱动安装成功后会安装 NVLTS：
 
 ```text
 /opt/nvlts/nvlts
@@ -410,7 +433,7 @@ systemctl restart resmon_service.service
   --ui=none
 ```
 
-同时会清理 NVLTS 相关文件和 systemd drop-in：
+启用 NVLTS 的包卸载时会清理 NVLTS 相关文件和 systemd drop-in：
 
 ```text
 /opt/nvlts/
@@ -435,7 +458,7 @@ ${TRIM_TEMP_LOGFILE}
 
 - `this_pack_manifest_version`
 - `this_pack_nvidia_driver_version`
-- `this_pack_nvidia_driver_url`
+- `this_pack_nvidia_driver_page_url`
 - `this_pack_manifest_platform`
 - `this_pack_manifest_kernel`，仅内核空间包使用
 
@@ -443,15 +466,17 @@ ${TRIM_TEMP_LOGFILE}
 
 ## 更新 NVIDIA 驱动时需要同步修改
 
-更新驱动版本时，至少需要检查并修改：
+新增或更新驱动版本时，至少需要检查并修改：
 
 1. `.github/workflows/test_release.yml`
    - `this_pack_version`
    - `this_pack_nvidia_driver_version`
-   - `this_pack_nvidia_driver_url`
-   - `this_pack_grid_url`
+   - `this_pack_nvidia_driver_page_url`
+   - `this_pack_grid_download_url`
    - `this_pack_grid_run`
    - `this_pack_nvlts_version`，如需要固定 NVLTS 版本
+   - `this_pack_enable_nvlts`，当前仅 `580.159.03-3` 为 `true`
+   - 创建 release、上传 asset、校验 asset 的版本矩阵
 
 2. `scripts/patch-nvidia-grid-kernel-binary.py`
    - 升级 `this_pack_grid_run` 或 NVIDIA 驱动版本时，建议重新检查 hex pattern 是否还能命中
@@ -478,6 +503,7 @@ ${TRIM_TEMP_LOGFILE}
 - `appstore.driver.gpu.nvidia.ko` 仍用于内核空间应用包名和内核模块目录前缀。
 - `appstore.driver.gpu.nvidia.user` 用于用户空间应用包名。
 - 内核空间和用户空间驱动版本必须一致。
+- 同一个 release tag 只放同一个 NVIDIA 驱动版本的内核空间包和用户空间包，不要混放不同驱动版本。
 - 宿主机 vGPU KVM 驱动和客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 版本组合。
 - NVIDIA kernel binary patch 的 pattern 未命中不会阻塞构建，但会按 pattern 名称输出 warning；脚本级失败也只会输出 warning 并继续构建。维护发布包时需要检查 workflow 日志，确认实际 patch 情况。
 - 本项目与飞牛官方应用中心 NVIDIA 驱动存在冲突，不应同时安装或启用。

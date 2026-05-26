@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-这里是 FNOS 用户空间驱动包模板，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS，不编译也不安装内核模块。
+这里是 FNOS 用户空间驱动包模板，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd`，并在启用时安装 NVLTS，不编译也不安装内核模块。
 
 ## STRUCTURE
 
@@ -24,9 +24,9 @@ package_user_space/
 | 校验内核驱动版本 | `cmd/main` | 读取 `/proc/driver/nvidia/version`，必须等于 `EXPECTED_DRIVER_VERSION`。 |
 | NVIDIA `.run` 安装参数 | `cmd/main` | 使用 `--no-kernel-modules` 和 `--no-dkms`。 |
 | `.run` 文件名 | `cmd/common` | `NVIDIA_RUN_FILE` 由 workflow 的 `this_pack_grid_run` 渲染。 |
-| NVLTS 安装 | `cmd/main` | 复制到 `/opt/nvlts`，写 systemd drop-in。 |
+| NVLTS 安装 | `cmd/main` | `ENABLE_NVLTS=true` 时复制到 `/opt/nvlts`，写 systemd drop-in。 |
 | gridd 配置 | `cmd/write_gridd_conf` | 默认 `FeatureType=2`，适配 RTX Virtual Workstation。 |
-| 卸载清理 | `cmd/common` | `.run --uninstall` 后清理 `/opt/nvlts` 和 drop-in。 |
+| 卸载清理 | `cmd/common` | `.run --uninstall` 后仅在 `ENABLE_NVLTS=true` 时清理 `/opt/nvlts` 和 drop-in。 |
 
 ## RUNTIME CONTRACT
 
@@ -38,9 +38,9 @@ package_user_space/
 
 ## CONVENTIONS
 
-- `EXPECTED_DRIVER_VERSION` 和 `NVIDIA_RUN_FILE` 都是 CI 占位符。
+- `EXPECTED_DRIVER_VERSION`、`NVIDIA_RUN_FILE` 和 `ENABLE_NVLTS` 都是 CI 占位符。
 - `user_space.yml` 上传 `.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`。
-- NVLTS artifact 必须包含 `nvlts` 二进制和 `configs` 目录。
+- 启用 NVLTS 时 artifact 必须包含 `nvlts` 二进制和 `configs` 目录；当前仅 `580.159.03-3` 启用。
 - `write_gridd_conf` 使用 heredoc 覆盖 `/etc/nvidia/gridd.conf`，保留 NVIDIA 模板注释。
 - 卸载失败通过 `report_error` 写日志并返回非零；清理后会 `systemctl daemon-reload`。
 

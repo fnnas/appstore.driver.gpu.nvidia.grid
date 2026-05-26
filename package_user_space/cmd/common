@@ -5,6 +5,7 @@ PACKAGE_BASE="${TRIM_APPDEST:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"
 NVIDIA_RUN_FILE="this_pack_grid_run"
+ENABLE_NVLTS="this_pack_enable_nvlts"
 MIN_ROOT_FREE_KB=$((2 * 1024 * 1024))
 
 log_msg() {
@@ -63,6 +64,10 @@ nvidia_ml_library_path() {
 
 nvlts_source_dir() {
     echo "${PACKAGE_BASE}/app/nvlts"
+}
+
+nvlts_enabled() {
+    [[ "${ENABLE_NVLTS}" == "true" ]]
 }
 
 systemd_unit_exists() {
@@ -127,5 +132,10 @@ cleanup_nvlts() {
 }
 
 uninstall_user_space_package() {
-    uninstall_user_space_driver && cleanup_nvlts
+    uninstall_user_space_driver || return 1
+    if nvlts_enabled; then
+        cleanup_nvlts
+    else
+        log_msg "Skipping NVLTS cleanup for NVIDIA driver ${EXPECTED_DRIVER_VERSION}"
+    fi
 }

@@ -13,7 +13,7 @@ on:
       this_pack_nvidia_driver_version:
         required: true
         type: string
-      this_pack_nvidia_driver_url:
+      this_pack_nvidia_driver_page_url:
         required: true
         type: string
       this_pack_grid_run:
@@ -24,9 +24,13 @@ on:
         type: string
         default: "nvidia-grid-runfile"
       nvlts_artifact:
-        required: true
+        required: false
         type: string
-        default: "nvlts"
+        default: ""
+      enable_nvlts:
+        required: false
+        type: boolean
+        default: false
       manifest_platform:
         required: true
         type: string
@@ -51,12 +55,14 @@ jobs:
           chmod +x "app/app/${{ inputs.this_pack_grid_run }}"
 
       - name: Restore NVLTS
+        if: ${{ inputs.enable_nvlts }}
         uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.nvlts_artifact }}
           path: app/app/nvlts/
 
       - name: Verify NVLTS artifact
+        if: ${{ inputs.enable_nvlts }}
         run: |
           test -f app/app/nvlts/nvlts
           test -d app/app/nvlts/configs
@@ -66,10 +72,11 @@ jobs:
         run: |
           sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_user_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/manifest
-          sed "s|this_pack_nvidia_driver_url|${{ inputs.this_pack_nvidia_driver_url }}|g" -i ./package_user_space/manifest
+          sed "s|this_pack_nvidia_driver_page_url|${{ inputs.this_pack_nvidia_driver_page_url }}|g" -i ./package_user_space/manifest
           sed "s/this_pack_manifest_platform/${{ inputs.manifest_platform }}/g" -i ./package_user_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/cmd/common
           sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/common
+          sed "s/this_pack_enable_nvlts/${{ inputs.enable_nvlts }}/g" -i ./package_user_space/cmd/common
 
       - name: Create user-space app payload archive
         run: |

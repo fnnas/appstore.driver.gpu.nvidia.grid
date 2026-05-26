@@ -201,7 +201,13 @@ check_status() {
 main() {
     case "$1" in
     start)
-        check_root_free_space && check_kernel_driver_version && install_user_space_driver && install_nvlts && restart_dependent_services
+        check_root_free_space && check_kernel_driver_version && install_user_space_driver || return 1
+        if nvlts_enabled; then
+            install_nvlts || return 1
+        else
+            log_msg "Skipping NVLTS install for NVIDIA driver ${EXPECTED_DRIVER_VERSION}"
+        fi
+        restart_dependent_services
         ;;
     stop)
         log_msg "Stop requested; NVIDIA user space driver is not removed by stop"

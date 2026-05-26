@@ -19,7 +19,7 @@ on:
         required: true
         type: string
         default: "nvidia-grid-runfile"
-      this_pack_grid_url:
+      this_pack_grid_download_url:
         required: true
         type: string
       this_pack_grid_run:
@@ -46,7 +46,7 @@ jobs:
         if: steps.cache-grid-driver.outputs.cache-hit != 'true'
         run: |
           mkdir -p downloads
-          curl -fL --retry 5 --retry-delay 10 -o "downloads/${{ inputs.this_pack_grid_run }}" "${{ inputs.this_pack_grid_url }}"
+          curl -fL --retry 5 --retry-delay 10 -o "downloads/${{ inputs.this_pack_grid_run }}" "${{ inputs.this_pack_grid_download_url }}"
 
       - name: Extract NVIDIA kernel source
         run: |

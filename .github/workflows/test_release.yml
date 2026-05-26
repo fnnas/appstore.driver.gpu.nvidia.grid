@@ -26,74 +26,112 @@ on:
 env:
   proj_name: "appstore.driver.gpu.nvidia.grid"
   kernel_module_package_name: "appstore.driver.gpu.nvidia.ko"
-  this_pack_version: "580.159.03-2"
-  this_pack_nvidia_driver_version: "580.159.03"
-  this_pack_nvidia_driver_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-  this_pack_grid_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
-  this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
-  this_pack_nvlts_version: ""
 
 jobs:
-  setup:
+  validate_version_matrix:
     runs-on: ubuntu-latest
-    outputs:
-      proj_name: ${{ steps.vars.outputs.proj_name }}
-      kernel_module_package_name: ${{ steps.vars.outputs.kernel_module_package_name }}
-      this_pack_version: ${{ steps.vars.outputs.this_pack_version }}
-      this_pack_nvidia_driver_version: ${{ steps.vars.outputs.this_pack_nvidia_driver_version }}
-      this_pack_nvidia_driver_url: ${{ steps.vars.outputs.this_pack_nvidia_driver_url }}
-      this_pack_grid_url: ${{ steps.vars.outputs.this_pack_grid_url }}
-      this_pack_grid_run: ${{ steps.vars.outputs.this_pack_grid_run }}
-      this_pack_nvlts_version: ${{ steps.vars.outputs.this_pack_nvlts_version }}
     steps:
-      - name: Prepare build variables
-        id: vars
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Validate driver version matrix
         run: |
-          {
-            echo "proj_name=${{ env.proj_name }}"
-            echo "kernel_module_package_name=${{ env.kernel_module_package_name }}"
-            echo "this_pack_version=${{ env.this_pack_version }}"
-            echo "this_pack_nvidia_driver_version=${{ env.this_pack_nvidia_driver_version }}"
-            echo "this_pack_nvidia_driver_url=${{ env.this_pack_nvidia_driver_url }}"
-            echo "this_pack_grid_url=${{ env.this_pack_grid_url }}"
-            echo "this_pack_grid_run=${{ env.this_pack_grid_run }}"
-            echo "this_pack_nvlts_version=${{ env.this_pack_nvlts_version }}"
-          } >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          import re
+          from collections import Counter
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
+          expected = {
+              ("580.159.03-3", "580.159.03"),
+              ("535.309.01-1", "535.309.01"),
+          }
+          expected_counts = {
+              "580.159.03-3": 10,
+              "535.309.01-1": 9,
+          }
+          pairs = set(re.findall(
+              r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
+              workflow,
+              flags=re.M,
+          ))
+          if pairs != expected:
+              print(f"Unexpected package/driver pairs: {sorted(pairs)}")
+              raise SystemExit(1)
+
+          versions = Counter(re.findall(r'^\s+- this_pack_version: "([^"]+)"', workflow, flags=re.M))
+          for this_pack_version, expected_count in sorted(expected_counts.items()):
+              if versions[this_pack_version] != expected_count:
+                  print(f"{this_pack_version}: expected {expected_count} matrix entries, found {versions[this_pack_version]}")
+                  raise SystemExit(1)
+          PY
 
   prepare_driver_package:
     uses: ./.github/workflows/nvidia-grid-kernel-src.yml
     secrets: inherit
     needs:
-      - setup
+      - validate_version_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+            this_pack_nvidia_driver_version: "580.159.03"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
+            this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
+            this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
+            this_pack_nvlts_version: ""
+          - this_pack_version: "535.309.01-1"
+            this_pack_nvidia_driver_version: "535.309.01"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
+            this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/16.14/NVIDIA-GRID-Linux-KVM-535.309.01-539.72/Guest_Drivers/NVIDIA-Linux-x86_64-535.309.01-grid.run"
+            this_pack_grid_run: "NVIDIA-Linux-x86_64-535.309.01-grid.run"
+            this_pack_nvlts_version: ""
     with:
-      driver_pkg_artifact: nvidia-grid-kernel-src
-      firmware_artifact: nvidia-grid-firmware
-      runfile_artifact: nvidia-grid-runfile
-      this_pack_grid_url: ${{ needs.setup.outputs.this_pack_grid_url }}
-      this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
+      driver_pkg_artifact: nvidia-grid-kernel-src-${{ matrix.this_pack_nvidia_driver_version }}
+      firmware_artifact: nvidia-grid-firmware-${{ matrix.this_pack_nvidia_driver_version }}
+      runfile_artifact: nvidia-grid-runfile-${{ matrix.this_pack_nvidia_driver_version }}
+      this_pack_grid_download_url: ${{ matrix.this_pack_grid_download_url }}
+      this_pack_grid_run: ${{ matrix.this_pack_grid_run }}
 
   prepare_nvlts:
     uses: ./.github/workflows/nvlts.yml
     secrets: inherit
     needs:
-      - setup
+      - validate_version_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+            this_pack_nvidia_driver_version: "580.159.03"
+            this_pack_nvlts_version: ""
     with:
-      nvlts_version: ${{ needs.setup.outputs.this_pack_nvlts_version }}
-      nvlts_artifact: nvlts
+      nvlts_version: ${{ matrix.this_pack_nvlts_version }}
+      nvlts_artifact: nvlts-${{ matrix.this_pack_nvidia_driver_version }}
 
   package_kernel_space:
     uses: ./.github/workflows/kernel_space.yml
     secrets: inherit
     needs:
-      - setup
       - prepare_driver_package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+            this_pack_nvidia_driver_version: "580.159.03"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
+          - this_pack_version: "535.309.01-1"
+            this_pack_nvidia_driver_version: "535.309.01"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
     with:
-      kernel_module_package_name: ${{ needs.setup.outputs.kernel_module_package_name }}
-      this_pack_version: ${{ needs.setup.outputs.this_pack_version }}
-      this_pack_nvidia_driver_version: ${{ needs.setup.outputs.this_pack_nvidia_driver_version }}
-      this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
-      driver_pkg_artifact: nvidia-grid-kernel-src
-      firmware_artifact: nvidia-grid-firmware
+      kernel_module_package_name: appstore.driver.gpu.nvidia.ko
+      this_pack_version: ${{ matrix.this_pack_version }}
+      this_pack_nvidia_driver_version: ${{ matrix.this_pack_nvidia_driver_version }}
+      this_pack_nvidia_driver_page_url: ${{ matrix.this_pack_nvidia_driver_page_url }}
+      driver_pkg_artifact: nvidia-grid-kernel-src-${{ matrix.this_pack_nvidia_driver_version }}
+      firmware_artifact: nvidia-grid-firmware-${{ matrix.this_pack_nvidia_driver_version }}
       enable_ccache: ${{ inputs.enable_ccache }}
 
   prune_ccache:
@@ -104,7 +142,7 @@ jobs:
     permissions:
       actions: write
     steps:
-      - name: Keep latest two ccache entries per kernel
+      - name: Keep latest two ccache entries per kernel and driver
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -142,7 +180,7 @@ jobs:
             exit 0
           fi
 
-          echo "Deleting $delete_count old ccache entries. Keeping latest two entries per kernel key prefix."
+          echo "Deleting $delete_count old ccache entries. Keeping latest two entries per key prefix."
           jq -r '
             "- id=\(.id) key=\(.key) createdAt=\(.createdAt) lastAccessedAt=\(.lastAccessedAt) size=\(.sizeInBytes)"
           ' "$delete_file"
@@ -168,16 +206,30 @@ jobs:
     uses: ./.github/workflows/user_space.yml
     secrets: inherit
     needs:
-      - setup
       - prepare_driver_package
       - prepare_nvlts
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+            this_pack_nvidia_driver_version: "580.159.03"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
+            this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
+            this_pack_enable_nvlts: true
+          - this_pack_version: "535.309.01-1"
+            this_pack_nvidia_driver_version: "535.309.01"
+            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
+            this_pack_grid_run: "NVIDIA-Linux-x86_64-535.309.01-grid.run"
+            this_pack_enable_nvlts: false
     with:
-      this_pack_version: ${{ needs.setup.outputs.this_pack_version }}
-      this_pack_nvidia_driver_version: ${{ needs.setup.outputs.this_pack_nvidia_driver_version }}
-      this_pack_nvidia_driver_url: ${{ needs.setup.outputs.this_pack_nvidia_driver_url }}
-      this_pack_grid_run: ${{ needs.setup.outputs.this_pack_grid_run }}
-      runfile_artifact: nvidia-grid-runfile
-      nvlts_artifact: nvlts
+      this_pack_version: ${{ matrix.this_pack_version }}
+      this_pack_nvidia_driver_version: ${{ matrix.this_pack_nvidia_driver_version }}
+      this_pack_nvidia_driver_page_url: ${{ matrix.this_pack_nvidia_driver_page_url }}
+      this_pack_grid_run: ${{ matrix.this_pack_grid_run }}
+      runfile_artifact: nvidia-grid-runfile-${{ matrix.this_pack_nvidia_driver_version }}
+      nvlts_artifact: nvlts-${{ matrix.this_pack_nvidia_driver_version }}
+      enable_nvlts: ${{ matrix.this_pack_enable_nvlts }}
       manifest_platform: x86
 
   create_release:
@@ -186,17 +238,23 @@ jobs:
       - package_kernel_space
       - package_user_space
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+          - this_pack_version: "535.309.01-1"
     steps:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view "${{ env.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Release ${{ env.this_pack_version }} already exists, skipping create."
+          if gh release view "${{ matrix.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${{ matrix.this_pack_version }} already exists, skipping create."
           else
-            gh release create "${{ env.this_pack_version }}" \
+            gh release create "${{ matrix.this_pack_version }}" \
               --repo "${GITHUB_REPOSITORY}" \
-              --title "fnnas.appstore.driver.gpu.nvidia.grid-${{ env.this_pack_version }}" \
+              --title "fnnas.appstore.driver.gpu.nvidia.grid-${{ matrix.this_pack_version }}" \
               --prerelease
           fi
 
@@ -209,25 +267,41 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+          - this_pack_version: "580.159.03-3"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-427-amd64"
-          - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+          - this_pack_version: "580.159.03-3"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-570-amd64"
-          - package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+          - this_pack_version: "580.159.03-3"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-587-amd64"
-          - package_name_prefix: "appstore.driver.gpu.nvidia.user"
+          - this_pack_version: "580.159.03-3"
+            package_name_prefix: "appstore.driver.gpu.nvidia.user"
+            package_name_suffix: "x86"
+          - this_pack_version: "535.309.01-1"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-427-amd64"
+          - this_pack_version: "535.309.01-1"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-570-amd64"
+          - this_pack_version: "535.309.01-1"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-587-amd64"
+          - this_pack_version: "535.309.01-1"
+            package_name_prefix: "appstore.driver.gpu.nvidia.user"
             package_name_suffix: "x86"
     steps:
       - name: Download package
         uses: actions/download-artifact@v7
         with:
-          name: ${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz
+          name: ${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz
           path: release-assets/
 
       - name: Rename package extension to fpk
         run: |
           set -euo pipefail
-          package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
+          package_name="${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
           fpk_name="${package_name}.fpk"
           echo "Renaming ${package_name} to ${fpk_name}"
           mv "release-assets/${package_name}" "release-assets/${fpk_name}"
@@ -237,9 +311,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploading release assets..."
-          package_name="${{ matrix.package_name_prefix }}-${{ env.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz.fpk"
+          package_name="${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz.fpk"
           echo "Uploading ${package_name}"
-          gh release upload "${{ env.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release upload "${{ matrix.this_pack_version }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
           echo "Upload completed!"
 
   verify_release_assets:
@@ -247,10 +321,16 @@ jobs:
     needs:
       - upload_release_assets
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - this_pack_version: "580.159.03-3"
+          - this_pack_version: "535.309.01-1"
     steps:
       - name: Verify Uploaded Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploaded assets:"
-          gh release view "${{ env.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" --json assets -q '.assets[].name'
+          echo "Uploaded assets for ${{ matrix.this_pack_version }}:"
+          gh release view "${{ matrix.this_pack_version }}" --repo "${GITHUB_REPOSITORY}" --json assets -q '.assets[].name'
