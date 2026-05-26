@@ -134,6 +134,13 @@ jobs:
           cd kernel
           make -j"$(nproc)"
 
+      - name: Show nvidia.ko modinfo
+        run: |
+          module_file="$(find ./kernel -name nvidia.ko -type f -print -quit)"
+          test -n "$module_file"
+          echo "module file: $module_file"
+          modinfo "$module_file"
+
       - name: Show ccache stats
         if: ${{ always() && inputs.enable_ccache }}
         run: |
