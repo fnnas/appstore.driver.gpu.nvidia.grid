@@ -34,3 +34,5 @@ __pycache__/
 !/app/ui/.gitkeep
 
 /tmp
+
+/docs/fnnas-docs

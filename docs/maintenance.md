@@ -409,6 +409,8 @@ systemctl enable nvidia-gridd
 systemctl restart nvidia-gridd
 ```
 
+在 FNOS 上 `nvidia-gridd` 可能由 NVIDIA 安装器生成 SysV service，`systemctl enable` 可能因 init 脚本缺少 `Default-Start` runlevel 而失败。安装脚本只记录该失败并继续，只有 `systemctl restart nvidia-gridd` 失败才会阻断安装。
+
 用户空间驱动安装成功后还会重启以下服务，使系统组件重新加载 NVIDIA 用户空间库：
 
 ```bash

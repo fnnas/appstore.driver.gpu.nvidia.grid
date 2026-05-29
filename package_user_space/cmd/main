@@ -151,10 +151,7 @@ install_nvlts() {
         report_error "Failed to reload systemd; see ${LOG_FILE}"
         return 1
     }
-    systemctl enable nvidia-gridd >> "${LOG_FILE}" 2>&1 || {
-        report_error "Failed to enable nvidia-gridd; see ${LOG_FILE}"
-        return 1
-    }
+    systemctl enable nvidia-gridd >> "${LOG_FILE}" 2>&1 || log_msg "Enable nvidia-gridd failed; continuing"
     systemctl restart nvidia-gridd >> "${LOG_FILE}" 2>&1 || {
         report_error "Failed to restart nvidia-gridd; see ${LOG_FILE}"
         return 1
