@@ -442,6 +442,8 @@ systemctl restart resmon_service.service
   --ui=none
 ```
 
+如果包内 `.run` 文件已经不存在，卸载流程会回退到系统内的 `/usr/bin/nvidia-installer`，并使用同一组卸载参数。
+
 启用 NVLTS 的包卸载时会清理 NVLTS 相关文件和 systemd drop-in：
 
 ```text
