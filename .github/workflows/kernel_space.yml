@@ -175,6 +175,9 @@ jobs:
           sed "s/this_pack_manifest_platform/${{ matrix.manifest_platform }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_manifest_kernel/${{ env.kernel_name }}/g" -i ./package_kernel_space/manifest
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/cmd/common
+          sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_kernel_space/wizard/install
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/wizard/install
+          sed "s/this_pack_manifest_kernel/${{ env.kernel_name }}/g" -i ./package_kernel_space/wizard/install
 
       - name: Create kernel app payload archive
         run: |

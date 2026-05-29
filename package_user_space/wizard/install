@@ -1,0 +1,20 @@
+[
+    {
+        "stepTitle": "安装前确认",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "<strong>NVIDIA GPU User Space Driver</strong><br><br>版本号：this_pack_manifest_version<br>项目地址：<a target=\"_blank\" href=\"https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/\">https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/</a><br><br>NVIDIA GPU 用户空间驱动包，提供 NVIDIA this_pack_nvidia_driver_version 用户空间驱动。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
+            }
+        ]
+    },
+    {
+        "stepTitle": "安装提醒",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "安装前必须先安装匹配版本的 NVIDIA 内核空间驱动包，并在重启后确认 /proc/driver/nvidia/version 显示 NVIDIA this_pack_nvidia_driver_version。<br>本包只安装 NVIDIA 用户空间库、nvidia-smi、nvidia-gridd 和可选 NVLTS，不会安装内核模块，也不会启用 DKMS。<br>内核空间驱动和用户空间驱动版本必须一致，否则安装会失败或 GPU 无法正常工作。<br>首次安装后如果应用中心显示启动失败，建议先重启系统再检查 nvidia-smi。"
+            }
+        ]
+    }
+]

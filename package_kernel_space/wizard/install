@@ -1,0 +1,20 @@
+[
+    {
+        "stepTitle": "安装前确认",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "<strong>NVIDIA GPU Kernel Driver</strong><br><br>版本号：this_pack_manifest_version<br>项目地址：<a target=\"_blank\" href=\"https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/\">https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/</a><br><br>NVIDIA GPU 内核模块驱动包，提供 NVIDIA this_pack_nvidia_driver_version 内核模块和对应 firmware。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
+            }
+        ]
+    },
+    {
+        "stepTitle": "安装提醒",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "安装前请确认当前 FNOS 内核版本和 build number 与所选内核驱动包匹配。<br>本包会安装 NVIDIA kernel module 和 firmware，并切换系统 NVIDIA GPU 内核模块 alternatives。<br>安装完成后必须重启系统，重启后再安装相同 NVIDIA 驱动版本的用户空间驱动包。<br>本项目驱动与飞牛官方应用中心 NVIDIA 驱动冲突，请勿同时安装。"
+            }
+        ]
+    }
+]

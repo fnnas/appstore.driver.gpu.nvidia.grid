@@ -77,6 +77,8 @@ jobs:
           sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/cmd/common
           sed "s/this_pack_grid_run/${{ inputs.this_pack_grid_run }}/g" -i ./package_user_space/cmd/common
           sed "s/this_pack_enable_nvlts/${{ inputs.enable_nvlts }}/g" -i ./package_user_space/cmd/common
+          sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_user_space/wizard/install
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_user_space/wizard/install
 
       - name: Create user-space app payload archive
         run: |
