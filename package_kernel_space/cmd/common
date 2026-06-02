@@ -114,6 +114,10 @@ module_link() {
 }
 
 restore_default_module_package() {
+    local changed
+    local current_target
+    local default_dir
+    local grid_dir
     local module_root
     local alt_dir
     local alt_link
@@ -121,23 +125,68 @@ restore_default_module_package() {
     module_root="$(module_root)"
     alt_dir="$(module_alternatives_dir)"
     alt_link="$(module_link)"
+    grid_dir="${module_root}/${MODULE_VARIANT}"
+    default_dir="${module_root}/${DEFAULT_MODULE_VARIANT}"
+    changed=0
 
-    mkdir -p "${alt_dir}" || {
-        report_error "Failed to create NVIDIA module alternatives directory: ${alt_dir}"
+    if [[ -d "${alt_dir}" ]]; then
+        if [[ -L "${alt_link}" ]]; then
+            current_target="$(readlink "${alt_link}" 2>/dev/null)" || current_target=""
+            if [[ "${current_target}" == "../${MODULE_VARIANT}" ]]; then
+                rm -f "${alt_link}" || {
+                    report_error "Failed to remove NVIDIA GRID alternative link: ${alt_link}"
+                    return 1
+                }
+                changed=1
+
+                if [[ -d "${default_dir}" ]]; then
+                    ln -s "../${DEFAULT_MODULE_VARIANT}" "${alt_link}" || {
+                        report_error "Failed to restore ${alt_link} to ../${DEFAULT_MODULE_VARIANT}"
+                        return 1
+                    }
+                    log_msg "Restored ${alt_link} -> ../${DEFAULT_MODULE_VARIANT}"
+                else
+                    log_msg "Default NVIDIA module directory not found: ${default_dir}; leaving ${alt_link} removed"
+                fi
+            else
+                log_msg "Skipping NVIDIA alternative restore; ${alt_link} points to ${current_target:-unknown}, not ../${MODULE_VARIANT}"
+            fi
+        elif [[ -e "${alt_link}" ]]; then
+            log_msg "Skipping NVIDIA alternative restore; ${alt_link} exists but is not a symlink"
+        else
+            log_msg "Skipping NVIDIA alternative restore; ${alt_link} does not exist"
+        fi
+    else
+        log_msg "Skipping NVIDIA alternative restore; alternatives directory not found: ${alt_dir}"
+    fi
+
+    case "${module_root}" in
+    /lib/modules/*/updates/trim | /usr/lib/modules_trim/* | /usr/trim/modules/*)
+        ;;
+    *)
+        report_error "Refusing to clean unsupported NVIDIA module root: ${module_root}"
         return 1
-    }
-    rm -f "${module_root}/${MODULE_GROUP}" "${alt_link}" || {
-        report_error "Failed to remove old NVIDIA module alternative link"
+        ;;
+    esac
+    if [[ "${module_root}" == "/" || -z "${module_root}" || "${grid_dir}" != */"${MODULE_VARIANT}" ]]; then
+        report_error "Refusing to remove unsafe NVIDIA GRID module directory: ${grid_dir}"
         return 1
-    }
-    ln -s "../${DEFAULT_MODULE_VARIANT}" "${alt_link}" || {
-        report_error "Failed to restore ${alt_link} to ../${DEFAULT_MODULE_VARIANT}"
-        return 1
-    }
-    rm -rf "${module_root}/${MODULE_VARIANT}" || {
-        report_error "Failed to remove NVIDIA GRID kernel module directory: ${module_root}/${MODULE_VARIANT}"
-        return 1
-    }
+    fi
+    if [[ -d "${grid_dir}" ]]; then
+        rm -rf "${grid_dir}" || {
+            report_error "Failed to remove NVIDIA GRID kernel module directory: ${grid_dir}"
+            return 1
+        }
+        log_msg "Removed NVIDIA GRID kernel module directory: ${grid_dir}"
+        changed=1
+    else
+        log_msg "Skipping NVIDIA GRID kernel module directory cleanup; not found: ${grid_dir}"
+    fi
+
+    if (( changed == 0 )); then
+        log_msg "No NVIDIA GRID kernel module cleanup changes were needed"
+        return 0
+    fi
 
     depmod || {
         report_error "Failed to update module dependencies with depmod"

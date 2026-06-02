@@ -4,7 +4,7 @@
         "items": [
             {
                 "type": "tips",
-                "helpText": "<strong>NVIDIA GPU Kernel Driver</strong><br><br>版本号：this_pack_manifest_version<br>项目地址：<a target=\"_blank\" href=\"https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/\">https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/</a><br><br>NVIDIA GPU 内核模块驱动包，提供 NVIDIA this_pack_nvidia_driver_version 内核模块和对应 firmware。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
+                "helpText": "<strong>NVIDIA GPU Kernel Driver</strong><br><br>版本号：this_pack_manifest_version<br>项目地址：<a target=\"_blank\" href=\"https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/\">https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/</a><br><br>安装前请确认宿主机 NVIDIA vGPU KVM 驱动版本与当前客户机 GRID 驱动 this_pack_nvidia_driver_version 来自匹配的 NVIDIA vGPU 发布包。<br><br>NVIDIA GPU 内核模块驱动包，提供 NVIDIA this_pack_nvidia_driver_version 内核模块和对应 firmware。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
             }
         ]
     },

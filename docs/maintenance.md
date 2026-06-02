@@ -336,11 +336,13 @@ EXPECTED_DRIVER_VERSION="580.159.03"
 - `package_kernel_space/cmd/uninstall_init`
 - `package_kernel_space/cmd/upgrade_init`
 
-这两个脚本会恢复默认 proprietary 模块：
+这两个脚本只在当前 alternatives 仍由本项目接管时恢复默认 proprietary 模块：
 
 ```text
 <模块根目录>/alternatives/nvidia-gpu -> ../nvidia-gpu-proprietary
 ```
+
+如果 alternatives 目录不存在，或者 `alternatives/nvidia-gpu` 已经指向非 `../nvidia-gpu-kernel-grid` 目标，卸载流程只记录日志，不会创建新目录或覆盖用户/系统已有选择。只有默认 proprietary 模块目录存在时，才会恢复到 `../nvidia-gpu-proprietary`；否则会移除本项目的 GRID link 并保持缺省状态。
 
 并移除本项目安装的模块目录：
 

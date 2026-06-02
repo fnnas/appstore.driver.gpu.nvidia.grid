@@ -9,7 +9,7 @@
 ```text
 package_kernel_space/
 ├── manifest          # CI 渲染版本、驱动 URL、平台和内核包名
-├── cmd/common        # 共享变量、日志、模块根目录解析、恢复默认 alternatives
+├── cmd/common        # 共享变量、日志、模块根目录解析、保守恢复 alternatives
 ├── cmd/main          # start/status/stop 主入口
 ├── cmd/uninstall_*   # 卸载生命周期入口
 ├── cmd/upgrade_*     # 升级生命周期入口
@@ -23,7 +23,7 @@ package_kernel_space/
 | 运行时选择内核模块目录 | `cmd/main` | `kernel_package_version()` 按 `uname -r`、build number、架构选择。 |
 | 解析 TRIM 模块根目录 | `cmd/common` | 优先跟随 `/lib/modules/.../updates/trim/alternatives`，再按版本/build fallback。 |
 | 安装 firmware | `cmd/main` | 来源 `${TRIM_APPDEST}/app/firmware`，目标 `/usr/lib/firmware/nvidia/<version>`。 |
-| 切换 alternatives | `cmd/main`、`cmd/common` | 安装切到 `../nvidia-gpu-kernel-grid`，卸载/升级恢复到 `../nvidia-gpu-proprietary`。 |
+| 切换 alternatives | `cmd/main`、`cmd/common` | 安装切到 `../nvidia-gpu-kernel-grid`；卸载/升级仅在当前仍指向 GRID 时恢复到已有 `../nvidia-gpu-proprietary`。 |
 | 禁用 nouveau | `cmd/common` | 写 `/etc/modprobe.d/blacklist-nouveau.conf`。 |
 | 渲染 manifest 和版本 | `.github/workflows/kernel_space.yml` | 替换 manifest 和 `cmd/common` 中的占位符。 |
 
@@ -47,6 +47,7 @@ package_kernel_space/
 
 - 不要新增内核构建目标而不更新 `cmd/main` 的 build number 选择逻辑。
 - 不要删除卸载/升级阶段的 `restore_default_module_package`，否则可能把系统 alternatives 留在 GRID 模块上。
+- 不要在卸载/升级阶段强制创建 alternatives 目录或覆盖非 GRID 目标；只能撤销本包仍在接管的状态。
 - 不要跳过 `depmod` 或 `update-initramfs -u`。
 - 不要硬编码 firmware 文件名；workflow 恢复的是完整 firmware 目录。
 
