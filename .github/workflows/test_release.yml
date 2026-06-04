@@ -22,6 +22,16 @@ on:
         required: true
         type: boolean
         default: true
+      build_580:
+        description: "是否构建 580.159.03?"
+        required: true
+        type: boolean
+        default: true
+      build_535:
+        description: "是否构建 535.309.01?"
+        required: true
+        type: boolean
+        default: true
 
 env:
   proj_name: "appstore.driver.gpu.nvidia.grid"
@@ -38,7 +48,6 @@ jobs:
         run: |
           python3 - <<'PY'
           import re
-          from collections import Counter
           from pathlib import Path
 
           workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
@@ -46,12 +55,8 @@ jobs:
               ("580.159.03-3", "580.159.03"),
               ("535.309.01-1", "535.309.01"),
           }
-          expected_counts = {
-              "580.159.03-3": 9,
-              "535.309.01-1": 8,
-          }
           pairs = set(re.findall(
-              r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
+              r'"this_pack_version": "([^"]+)",\n\s+"this_pack_nvidia_driver_version": "([^"]+)"',
               workflow,
               flags=re.M,
           ))
@@ -59,34 +64,149 @@ jobs:
               print(f"Unexpected package/driver pairs: {sorted(pairs)}")
               raise SystemExit(1)
 
-          versions = Counter(re.findall(r'^\s+- this_pack_version: "([^"]+)"', workflow, flags=re.M))
-          for this_pack_version, expected_count in sorted(expected_counts.items()):
-              if versions[this_pack_version] != expected_count:
-                  print(f"{this_pack_version}: expected {expected_count} matrix entries, found {versions[this_pack_version]}")
-                  raise SystemExit(1)
+          kernels = set(re.findall(r'"(6[.]18[.]18-trim-(?:427|570|587|717)-amd64)"', workflow))
+          expected_kernels = {
+              "6.18.18-trim-427-amd64",
+              "6.18.18-trim-570-amd64",
+              "6.18.18-trim-587-amd64",
+              "6.18.18-trim-717-amd64",
+          }
+          if kernels != expected_kernels:
+              print(f"Unexpected kernel package suffixes: {sorted(kernels)}")
+              raise SystemExit(1)
+          PY
+
+  plan_build:
+    runs-on: ubuntu-latest
+    needs:
+      - validate_version_matrix
+    outputs:
+      build_580: ${{ steps.plan.outputs.build_580 }}
+      build_535: ${{ steps.plan.outputs.build_535 }}
+      driver_matrix: ${{ steps.plan.outputs.driver_matrix }}
+      nvlts_matrix: ${{ steps.plan.outputs.nvlts_matrix }}
+      user_matrix: ${{ steps.plan.outputs.user_matrix }}
+      release_assets_matrix: ${{ steps.plan.outputs.release_assets_matrix }}
+      selected_driver_regex: ${{ steps.plan.outputs.selected_driver_regex }}
+      selected_driver_summary: ${{ steps.plan.outputs.selected_driver_summary }}
+    steps:
+      - name: Plan selected driver builds
+        id: plan
+        env:
+          BUILD_580: ${{ inputs.build_580 }}
+          BUILD_535: ${{ inputs.build_535 }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          drivers = [
+              {
+                  "enabled": os.environ["BUILD_580"] == "true",
+                  "this_pack_version": "580.159.03-3",
+                  "this_pack_nvidia_driver_version": "580.159.03",
+                  "this_pack_nvidia_driver_page_url": "https://www.nvidia.com/en-us/drivers/details/267577/",
+                  "this_pack_grid_download_url": "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run",
+                  "this_pack_grid_run": "NVIDIA-Linux-x86_64-580.159.03-grid.run",
+                  "this_pack_nvlts_version": "",
+                  "this_pack_enable_nvlts": True,
+              },
+              {
+                  "enabled": os.environ["BUILD_535"] == "true",
+                  "this_pack_version": "535.309.01-1",
+                  "this_pack_nvidia_driver_version": "535.309.01",
+                  "this_pack_nvidia_driver_page_url": "https://www.nvidia.cn/drivers/details/267227/",
+                  "this_pack_grid_download_url": "https://alist.homelabproject.cc/d/foxipan/vGPU/16.14/NVIDIA-GRID-Linux-KVM-535.309.01-539.72/Guest_Drivers/NVIDIA-Linux-x86_64-535.309.01-grid.run",
+                  "this_pack_grid_run": "NVIDIA-Linux-x86_64-535.309.01-grid.run",
+                  "this_pack_nvlts_version": "",
+                  "this_pack_enable_nvlts": False,
+              },
+          ]
+          kernels = [
+              "6.18.18-trim-427-amd64",
+              "6.18.18-trim-570-amd64",
+              "6.18.18-trim-587-amd64",
+              "6.18.18-trim-717-amd64",
+          ]
+          selected = [driver for driver in drivers if driver["enabled"]]
+          if not selected:
+              print("At least one NVIDIA driver version must be selected.")
+              raise SystemExit(1)
+
+          def public_driver_fields(driver):
+              return {
+                  key: value
+                  for key, value in driver.items()
+                  if key != "enabled"
+              }
+
+          driver_matrix = [public_driver_fields(driver) for driver in selected]
+          nvlts_matrix = [
+              public_driver_fields(driver)
+              for driver in selected
+              if driver["this_pack_enable_nvlts"]
+          ]
+          user_matrix = [
+              {
+                  "this_pack_version": driver["this_pack_version"],
+                  "this_pack_nvidia_driver_version": driver["this_pack_nvidia_driver_version"],
+                  "this_pack_nvidia_driver_page_url": driver["this_pack_nvidia_driver_page_url"],
+                  "this_pack_grid_run": driver["this_pack_grid_run"],
+                  "this_pack_enable_nvlts": driver["this_pack_enable_nvlts"],
+              }
+              for driver in selected
+          ]
+          release_assets_matrix = []
+          for driver in selected:
+              for kernel in kernels:
+                  release_assets_matrix.append({
+                      "this_pack_version": driver["this_pack_version"],
+                      "package_name_prefix": "appstore.driver.gpu.nvidia.ko",
+                      "package_name_suffix": kernel,
+                  })
+              release_assets_matrix.append({
+                  "this_pack_version": driver["this_pack_version"],
+                  "package_name_prefix": "appstore.driver.gpu.nvidia.user",
+                  "package_name_suffix": "x86",
+              })
+
+          selected_versions = [
+              driver["this_pack_nvidia_driver_version"]
+              for driver in selected
+          ]
+          selected_driver_regex = "|".join(
+              version.replace(".", "[.]")
+              for version in selected_versions
+          )
+          selected_driver_summary = ", ".join(selected_versions)
+
+          outputs = {
+              "build_580": str(os.environ["BUILD_580"] == "true").lower(),
+              "build_535": str(os.environ["BUILD_535"] == "true").lower(),
+              "driver_matrix": json.dumps({"include": driver_matrix}, separators=(",", ":")),
+              "nvlts_matrix": json.dumps({"include": nvlts_matrix}, separators=(",", ":")),
+              "user_matrix": json.dumps({"include": user_matrix}, separators=(",", ":")),
+              "release_assets_matrix": json.dumps({"include": release_assets_matrix}, separators=(",", ":")),
+              "selected_driver_regex": selected_driver_regex,
+              "selected_driver_summary": selected_driver_summary,
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              for key, value in outputs.items():
+                  print(f"{key}={value}", file=out)
+
+          print(f"Selected NVIDIA driver versions: {selected_driver_summary}")
+          print(f"Build 580.159.03: {outputs['build_580']}")
+          print(f"Build 535.309.01: {outputs['build_535']}")
           PY
 
   prepare_driver_package:
     uses: ./.github/workflows/nvidia-grid-kernel-src.yml
     secrets: inherit
     needs:
-      - validate_version_matrix
+      - plan_build
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-            this_pack_nvidia_driver_version: "580.159.03"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-            this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/19.5/NVIDIA-GRID-Linux-KVM-580.159.01-580.159.03-582.53/Guest_Drivers/NVIDIA-Linux-x86_64-580.159.03-grid.run"
-            this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
-            this_pack_nvlts_version: ""
-          - this_pack_version: "535.309.01-1"
-            this_pack_nvidia_driver_version: "535.309.01"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
-            this_pack_grid_download_url: "https://alist.homelabproject.cc/d/foxipan/vGPU/16.14/NVIDIA-GRID-Linux-KVM-535.309.01-539.72/Guest_Drivers/NVIDIA-Linux-x86_64-535.309.01-grid.run"
-            this_pack_grid_run: "NVIDIA-Linux-x86_64-535.309.01-grid.run"
-            this_pack_nvlts_version: ""
+      matrix: ${{ fromJson(needs.plan_build.outputs.driver_matrix) }}
     with:
       driver_pkg_artifact: nvidia-grid-kernel-src-${{ matrix.this_pack_nvidia_driver_version }}
       firmware_artifact: nvidia-grid-firmware-${{ matrix.this_pack_nvidia_driver_version }}
@@ -95,36 +215,28 @@ jobs:
       this_pack_grid_run: ${{ matrix.this_pack_grid_run }}
 
   prepare_nvlts:
+    if: ${{ needs.plan_build.outputs.build_580 == 'true' }}
     uses: ./.github/workflows/nvlts.yml
     secrets: inherit
     needs:
-      - validate_version_matrix
+      - plan_build
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-            this_pack_nvidia_driver_version: "580.159.03"
-            this_pack_nvlts_version: ""
+      matrix: ${{ fromJson(needs.plan_build.outputs.nvlts_matrix) }}
     with:
       nvlts_version: ${{ matrix.this_pack_nvlts_version }}
       nvlts_artifact: nvlts-${{ matrix.this_pack_nvidia_driver_version }}
 
   package_kernel_space:
+    if: ${{ needs.prepare_driver_package.result == 'success' }}
     uses: ./.github/workflows/kernel_space.yml
     secrets: inherit
     needs:
       - prepare_driver_package
+      - plan_build
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-            this_pack_nvidia_driver_version: "580.159.03"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-          - this_pack_version: "535.309.01-1"
-            this_pack_nvidia_driver_version: "535.309.01"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
+      matrix: ${{ fromJson(needs.plan_build.outputs.driver_matrix) }}
     with:
       kernel_module_package_name: appstore.driver.gpu.nvidia.ko
       this_pack_version: ${{ matrix.this_pack_version }}
@@ -135,9 +247,10 @@ jobs:
       enable_ccache: ${{ inputs.enable_ccache }}
 
   prune_ccache:
-    if: ${{ always() && inputs.enable_ccache }}
+    if: ${{ always() && inputs.enable_ccache && needs.package_kernel_space.result == 'success' }}
     needs:
       - package_kernel_space
+      - plan_build
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -168,7 +281,7 @@ jobs:
           ' "$caches_file"
 
           jq -c '
-            map(select(.key | test("^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-[0-9]+[.][0-9]+[.][0-9]+-[0-9]+-[0-9]+$")))
+            map(select(.key | test("^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$")))
             | group_by(.key | sub("-[0-9]+-[0-9]+$"; ""))
             | map(sort_by(.createdAt) | reverse | .[2:][]?)
             | .[]
@@ -190,7 +303,7 @@ jobs:
             cache_id="$(jq -r '.id' <<< "$cache")"
             cache_key="$(jq -r '.key' <<< "$cache")"
             cache_created_at="$(jq -r '.createdAt' <<< "$cache")"
-            if ! grep -Eq '^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-[0-9]+[.][0-9]+[.][0-9]+-[0-9]+-[0-9]+$' <<< "$cache_key"; then
+            if ! grep -Eq '^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$' <<< "$cache_key"; then
               echo "::warning::Skip non-kernel-ccache key=$cache_key"
               continue
             fi
@@ -207,25 +320,16 @@ jobs:
           done < "$delete_file"
 
   package_user_space:
+    if: ${{ always() && needs.prepare_driver_package.result == 'success' && (needs.prepare_nvlts.result == 'success' || needs.prepare_nvlts.result == 'skipped') }}
     uses: ./.github/workflows/user_space.yml
     secrets: inherit
     needs:
       - prepare_driver_package
       - prepare_nvlts
+      - plan_build
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-            this_pack_nvidia_driver_version: "580.159.03"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.com/en-us/drivers/details/267577/"
-            this_pack_grid_run: "NVIDIA-Linux-x86_64-580.159.03-grid.run"
-            this_pack_enable_nvlts: true
-          - this_pack_version: "535.309.01-1"
-            this_pack_nvidia_driver_version: "535.309.01"
-            this_pack_nvidia_driver_page_url: "https://www.nvidia.cn/drivers/details/267227/"
-            this_pack_grid_run: "NVIDIA-Linux-x86_64-535.309.01-grid.run"
-            this_pack_enable_nvlts: false
+      matrix: ${{ fromJson(needs.plan_build.outputs.user_matrix) }}
     with:
       this_pack_version: ${{ matrix.this_pack_version }}
       this_pack_nvidia_driver_version: ${{ matrix.this_pack_nvidia_driver_version }}
@@ -237,10 +341,11 @@ jobs:
       manifest_platform: x86
 
   create_release:
-    if: ${{ inputs.make_release }}
+    if: ${{ always() && inputs.make_release && needs.package_kernel_space.result == 'success' && needs.package_user_space.result == 'success' }}
     needs:
       - package_kernel_space
       - package_user_space
+      - plan_build
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.vars.outputs.release_tag }}
@@ -262,54 +367,40 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          release_notes="$(mktemp)"
+          cat > "$release_notes" <<'EOF'
+          Build commit: ${{ github.sha }}
+          Build ref: ${{ github.ref_name }}
+          Build 580.159.03: ${{ needs.plan_build.outputs.build_580 }}
+          Build 535.309.01: ${{ needs.plan_build.outputs.build_535 }}
+          Selected NVIDIA drivers: ${{ needs.plan_build.outputs.selected_driver_summary }}
+          EOF
+          sed -i 's/^          //' "$release_notes"
+
           if gh release view "${{ steps.vars.outputs.release_tag }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Release ${{ steps.vars.outputs.release_tag }} already exists, skipping create."
+            echo "Release ${{ steps.vars.outputs.release_tag }} already exists, updating notes."
+            gh release edit "${{ steps.vars.outputs.release_tag }}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "fnnas.appstore.driver.gpu.nvidia.grid ${{ steps.vars.outputs.release_title }}" \
+              --notes-file "$release_notes" \
+              --prerelease
           else
             gh release create "${{ steps.vars.outputs.release_tag }}" \
               --repo "${GITHUB_REPOSITORY}" \
               --title "fnnas.appstore.driver.gpu.nvidia.grid ${{ steps.vars.outputs.release_title }}" \
+              --notes-file "$release_notes" \
               --prerelease
           fi
 
   upload_release_assets:
-    if: ${{ inputs.make_release }}
+    if: ${{ inputs.make_release && needs.create_release.result == 'success' }}
     needs:
       - create_release
+      - plan_build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - this_pack_version: "580.159.03-3"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-427-amd64"
-          - this_pack_version: "580.159.03-3"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-570-amd64"
-          - this_pack_version: "580.159.03-3"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-587-amd64"
-          - this_pack_version: "580.159.03-3"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-717-amd64"
-          - this_pack_version: "580.159.03-3"
-            package_name_prefix: "appstore.driver.gpu.nvidia.user"
-            package_name_suffix: "x86"
-          - this_pack_version: "535.309.01-1"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-427-amd64"
-          - this_pack_version: "535.309.01-1"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-570-amd64"
-          - this_pack_version: "535.309.01-1"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-587-amd64"
-          - this_pack_version: "535.309.01-1"
-            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
-            package_name_suffix: "6.18.18-trim-717-amd64"
-          - this_pack_version: "535.309.01-1"
-            package_name_prefix: "appstore.driver.gpu.nvidia.user"
-            package_name_suffix: "x86"
+      matrix: ${{ fromJson(needs.plan_build.outputs.release_assets_matrix) }}
     steps:
       - name: Download package
         uses: actions/download-artifact@v7

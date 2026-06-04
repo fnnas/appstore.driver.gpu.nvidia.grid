@@ -55,7 +55,7 @@ jobs:
           version_pairs = {
               (this_pack_nvidia_driver_version, this_pack_version)
               for this_pack_version, this_pack_nvidia_driver_version in re.findall(
-                  r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
+                  r'"this_pack_version": "([^"]+)",\n\s+"this_pack_nvidia_driver_version": "([^"]+)"',
                   workflow,
                   flags=re.M,
               )

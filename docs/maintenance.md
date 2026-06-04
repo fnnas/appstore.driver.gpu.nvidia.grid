@@ -89,6 +89,8 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 主入口 workflow，负责整体编排：
 
 - 定义项目名、包名和驱动版本矩阵
+- 通过 `workflow_dispatch` 的 `build_580` / `build_535` 开关选择本次构建的 NVIDIA 驱动版本
+- 通过 `plan_build` 生成准备驱动包、NVLTS、用户空间包和 release asset 的动态 matrix
 - 调用 `nvidia-grid-kernel-src.yml` 准备 NVIDIA 源码、firmware 和 `.run` 安装器
 - 调用 `nvlts.yml` 为 `580.159.03-3` 准备 NVLTS artifact
 - 调用 `kernel_space.yml` 编译内核模块并打包 `package_kernel_space`
@@ -102,9 +104,9 @@ title: fnnas.appstore.driver.gpu.nvidia.grid 2026.05.26 20:03:42
 tag: 2026.05.26-20-03-42
 ```
 
-Git tag 不使用空格和冒号，release title 保留常见时间格式用于显示。同一个 release 会包含当前矩阵中所有驱动版本的最终安装包。
+Git tag 不使用空格和冒号，release title 保留常见时间格式用于显示。Release notes 会记录本次构建的 commit id、ref、`build_580` / `build_535` 开关状态和实际选择的 NVIDIA 驱动版本。
 
-驱动版本集中维护在 `test_release.yml` 的 matrix 中。新增驱动版本时，需要同步维护准备驱动包、内核空间打包、用户空间打包和上传 release asset 这些 matrix：
+驱动版本集中维护在 `test_release.yml` 的 `plan_build` job 中。新增驱动版本时，需要在 `drivers` 列表里维护以下字段；`plan_build` 会基于用户勾选结果生成准备驱动包、用户空间包和上传 release asset 所需的动态 matrix：
 
 ```yaml
 - this_pack_version: "580.159.03-3"
@@ -122,6 +124,8 @@ Git tag 不使用空格和冒号，release title 保留常见时间格式用于�
   this_pack_nvlts_version: ""
   this_pack_enable_nvlts: false
 ```
+
+`prune_ccache` 会使用 `plan_build` 输出的已选择驱动版本正则，只清理本次勾选版本对应的内核 ccache key。未勾选的 NVIDIA 驱动版本不会进入删除列表。
 
 ### `nvidia-grid-kernel-src.yml`
 
@@ -495,7 +499,8 @@ ${TRIM_TEMP_LOGFILE}
    - `this_pack_grid_run`
    - `this_pack_nvlts_version`，如需要固定 NVLTS 版本
    - `this_pack_enable_nvlts`，当前仅 `580.159.03-3` 为 `true`
-   - 创建 release、上传 asset、校验 asset 的版本矩阵
+   - `workflow_dispatch` 中对应的构建开关
+   - `plan_build` 输出的动态 matrix 和 release notes 字段
 
 2. `scripts/patch-nvidia-grid-kernel-binary.py`
    - 升级 `this_pack_grid_run` 或 NVIDIA 驱动版本时，建议重新检查 hex pattern 是否还能命中
@@ -506,7 +511,8 @@ ${TRIM_TEMP_LOGFILE}
 
 4. 如新增内核或架构
    - 在 `kernel_space.yml` 的 matrix 中加入对应目标
-   - 在 `test_release.yml` 的 release 上传矩阵中加入对应最终包目标
+   - 在 `test_release.yml` 的 `plan_build` kernels 列表中加入对应最终包目标
+   - 在 `test_release.yml` 的 `validate_version_matrix` 和 `prune_ccache` 正则中加入对应内核 build
    - 确认 release 上传流程仍先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`
    - 同步维护矩阵中的 `manifest_platform`
 
