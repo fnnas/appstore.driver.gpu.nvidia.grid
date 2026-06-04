@@ -1,6 +1,6 @@
 version="this_pack_manifest_version"
 appname="appstore.driver.gpu.nvidia.ko"
-desc="NVIDIA GPU 内核模块驱动包，提供 NVIDIA this_pack_nvidia_driver_version 内核模块和对应 firmware。<br>使用前还需要重启后再安装 NVIDIA 用户空间驱动，且用户空间驱动版本必须与本内核空间驱动版本匹配。<br>安装完成后，必须重启系统。<br>适配内核：this_pack_manifest_kernel。<br>本应用会切换系统 NVIDIA GPU 内核模块 alternatives，并与飞牛官方应用中心提供的 NVIDIA 驱动应用存在冲突，请勿同时安装或启用。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
+desc="NVIDIA GPU 内核模块驱动包，提供 NVIDIA this_pack_nvidia_driver_version 内核模块和对应 firmware。<br>使用前还需要重启后再安装 NVIDIA 用户空间驱动，且用户空间驱动版本必须与本内核空间驱动版本匹配。<br>安装完成后，必须重启系统。<br>编译适配内核：this_pack_manifest_kernel。<br>本应用会切换系统 NVIDIA GPU 内核模块 alternatives，并与飞牛官方应用中心提供的 NVIDIA 驱动应用存在冲突，请勿同时安装或启用。<br>该软件包由飞牛社区用户提供，由飞牛社区用户自行维护。"
 display_name="NVIDIA GPU Kernel Driver"
 maintainer="NVIDIA"
 platform="this_pack_manifest_platform"
