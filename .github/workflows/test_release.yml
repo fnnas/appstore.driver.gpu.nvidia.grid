@@ -47,8 +47,8 @@ jobs:
               ("535.309.01-1", "535.309.01"),
           }
           expected_counts = {
-              "580.159.03-3": 8,
-              "535.309.01-1": 7,
+              "580.159.03-3": 9,
+              "535.309.01-1": 8,
           }
           pairs = set(re.findall(
               r'^\s+- this_pack_version: "([^"]+)"\n\s+this_pack_nvidia_driver_version: "([^"]+)"',
@@ -142,7 +142,7 @@ jobs:
     permissions:
       actions: write
     steps:
-      - name: Keep latest two ccache entries per kernel and driver
+      - name: Keep latest two kernel ccache entries per kernel and driver
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,15 +152,15 @@ jobs:
 
           echo "Repository: $GH_REPO"
           echo "Authenticated as: $(gh api user --jq .login 2>/dev/null || echo unknown)"
-          echo "Listing ccache entries..."
+          echo "Listing kernel ccache entries..."
 
           caches_file="$(mktemp)"
           delete_file="$(mktemp)"
 
-          gh cache list --key ccache- --limit 1000 --json id,key,createdAt,lastAccessedAt,sizeInBytes > "$caches_file"
+          gh cache list --key ccache-6.18.18-trim- --limit 1000 --json id,key,createdAt,lastAccessedAt,sizeInBytes > "$caches_file"
 
           cache_count="$(jq 'length' "$caches_file")"
-          echo "Found $cache_count cache entries with ccache- prefix."
+          echo "Found $cache_count cache entries with kernel ccache prefix."
           jq -r '
             sort_by(.key)
             | .[]
@@ -168,7 +168,7 @@ jobs:
           ' "$caches_file"
 
           jq -c '
-            map(select(.key | test("^ccache-.+-[0-9]+-[0-9]+$")))
+            map(select(.key | test("^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-[0-9]+[.][0-9]+[.][0-9]+-[0-9]+-[0-9]+$")))
             | group_by(.key | sub("-[0-9]+-[0-9]+$"; ""))
             | map(sort_by(.createdAt) | reverse | .[2:][]?)
             | .[]
@@ -190,6 +190,10 @@ jobs:
             cache_id="$(jq -r '.id' <<< "$cache")"
             cache_key="$(jq -r '.key' <<< "$cache")"
             cache_created_at="$(jq -r '.createdAt' <<< "$cache")"
+            if ! grep -Eq '^ccache-6[.]18[.]18-trim-(427|570|587|717)-amd64-[0-9]+[.][0-9]+[.][0-9]+-[0-9]+-[0-9]+$' <<< "$cache_key"; then
+              echo "::warning::Skip non-kernel-ccache key=$cache_key"
+              continue
+            fi
             echo "::group::Delete cache id=$cache_id key=$cache_key"
             echo "createdAt=$cache_created_at"
             if output="$(gh cache delete "$cache_id" 2>&1)"; then
@@ -286,6 +290,9 @@ jobs:
             package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-587-amd64"
           - this_pack_version: "580.159.03-3"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-717-amd64"
+          - this_pack_version: "580.159.03-3"
             package_name_prefix: "appstore.driver.gpu.nvidia.user"
             package_name_suffix: "x86"
           - this_pack_version: "535.309.01-1"
@@ -297,6 +304,9 @@ jobs:
           - this_pack_version: "535.309.01-1"
             package_name_prefix: "appstore.driver.gpu.nvidia.ko"
             package_name_suffix: "6.18.18-trim-587-amd64"
+          - this_pack_version: "535.309.01-1"
+            package_name_prefix: "appstore.driver.gpu.nvidia.ko"
+            package_name_suffix: "6.18.18-trim-717-amd64"
           - this_pack_version: "535.309.01-1"
             package_name_prefix: "appstore.driver.gpu.nvidia.user"
             package_name_suffix: "x86"

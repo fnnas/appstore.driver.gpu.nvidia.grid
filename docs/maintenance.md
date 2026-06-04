@@ -59,10 +59,12 @@ GitHub Actions 会生成以下最终包：
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
@@ -155,6 +157,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - `6.18.18-trim-427-amd64`
 - `6.18.18-trim-570-amd64`
 - `6.18.18-trim-587-amd64`
+- `6.18.18-trim-717-amd64`
 
 执行流程：
 
@@ -256,7 +259,8 @@ ${TRIM_APPDEST}/app/firmware/
 ```text
 build < 570        -> 6.18.18-trim-427-<arch>
 570 <= build < 587 -> 6.18.18-trim-570-<arch>
-build >= 587       -> 6.18.18-trim-587-<arch>
+587 <= build < 717 -> 6.18.18-trim-587-<arch>
+build >= 717       -> 6.18.18-trim-717-<arch>
 ```
 
 模块包目录格式：

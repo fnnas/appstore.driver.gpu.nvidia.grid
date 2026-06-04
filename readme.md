@@ -37,7 +37,8 @@
 |----------------|-------------------|-------------------------------------------------------------------------|
 | `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
 | `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
-| `6.18.18-trim` | `#587` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#587` 到 `#716`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#717` 及以上        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
 
 如果使用 GRID 16.14 / `535.309.01` 版本，包名中的应用包版本需要同步换成 `535.309.01-1`，例如：
 
@@ -52,7 +53,7 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 uname -a
 ```
 
-根据输出中的内核版本和 `#473`、`#570`、`#587` 等 build number 选择对应内核包。
+根据输出中的内核版本和 `#473`、`#570`、`#587`、`#717` 等 build number 选择对应内核包。
 
 ## 安装顺序
 

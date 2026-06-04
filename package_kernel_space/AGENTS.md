@@ -32,7 +32,8 @@ package_kernel_space/
 - 当前支持内核版本只接受 `6.18.18-trim`。
 - build `< 570` 使用 `6.18.18-trim-427-<arch>`。
 - build `570 <= x < 587` 使用 `6.18.18-trim-570-<arch>`。
-- build `>= 587` 使用 `6.18.18-trim-587-<arch>`。
+- build `587 <= x < 717` 使用 `6.18.18-trim-587-<arch>`。
+- build `>= 717` 使用 `6.18.18-trim-717-<arch>`。
 - `nvidia.ko` 中读到的 module version 必须等于 `EXPECTED_DRIVER_VERSION`。
 
 ## CONVENTIONS

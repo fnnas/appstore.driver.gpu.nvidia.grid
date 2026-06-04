@@ -43,8 +43,10 @@ kernel_package_version() {
         build_tag="427"
     elif (( build_num < 587 )); then
         build_tag="570"
-    else
+    elif (( build_num < 717 )); then
         build_tag="587"
+    else
+        build_tag="717"
     fi
 
     echo "${kernel_ver}-${build_tag}-${arch}"
