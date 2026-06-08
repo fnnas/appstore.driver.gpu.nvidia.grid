@@ -23,6 +23,11 @@ kernel_driver_version() {
 check_kernel_driver_version() {
     local version
 
+    if [[ "${wizard_ignore_kernel_driver_version_check:-false}" == "true" ]]; then
+        log_msg "Skipping /proc/driver/nvidia/version check by install wizard option"
+        return 0
+    fi
+
     version="$(kernel_driver_version)" || {
         report_error "Unable to read /proc/driver/nvidia/version"
         return 1

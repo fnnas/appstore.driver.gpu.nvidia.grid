@@ -14,6 +14,16 @@
             {
                 "type": "tips",
                 "helpText": "安装前必须先安装匹配版本的 NVIDIA 内核空间驱动包，并在重启后确认 /proc/driver/nvidia/version 显示 NVIDIA this_pack_nvidia_driver_version。<br>本包只安装 NVIDIA 用户空间库、nvidia-smi、nvidia-gridd 和可选 NVLTS，不会安装内核模块，也不会启用 DKMS。<br>内核空间驱动和用户空间驱动版本必须一致，否则安装会失败或 GPU 无法正常工作。<br>首次安装后如果应用中心显示启动失败，建议先重启系统再检查 nvidia-smi。"
+            },
+            {
+                "type": "tips",
+                "helpText": "如果 /proc/driver/nvidia/version 暂时不可读，但你已经确认宿主机 vGPU KVM 驱动、客户机内核空间驱动和本用户空间驱动版本匹配，可以启用下面的跳过检测选项。启用后仍可能因驱动实际不匹配导致安装失败或 GPU 无法正常工作。"
+            },
+            {
+                "type": "switch",
+                "field": "wizard_ignore_kernel_driver_version_check",
+                "label": "忽略 /proc/driver/nvidia/version 检测",
+                "initValue": "false"
             }
         ]
     }

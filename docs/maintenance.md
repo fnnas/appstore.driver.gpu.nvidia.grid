@@ -385,6 +385,8 @@ package_user_space/cmd/main
 580.159.03
 ```
 
+安装向导第二步提供 `wizard_ignore_kernel_driver_version_check` 开关。该开关来自 `wizard/install` 的 `switch` 表单项，默认值为 `false`；只有用户明确启用并传入 `true` 时，`start` 才会跳过 `/proc/driver/nvidia/version` 读取和版本匹配检查。跳过检测只用于已确认驱动版本匹配但 `/proc/driver/nvidia/version` 暂时不可读的场景，不会放宽后续 NVIDIA 安装器本身的约束。
+
 版本匹配后，执行 NVIDIA `.run` 安装包的静默安装。安装命令等价于：
 
 ```bash
