@@ -29,11 +29,12 @@ package_kernel_space/
 
 ## RUNTIME CONTRACT
 
-- 当前支持内核版本只接受 `6.18.18-trim`。
+- 当前支持内核版本接受 `6.18.18-trim`；`#788` 起接受 `6.18.18.c<N>-trim`，运行时统一映射到 `6.18.18-trim-<build>-<arch>` 包内模块目录。
 - build `< 570` 使用 `6.18.18-trim-427-<arch>`。
 - build `570 <= x < 587` 使用 `6.18.18-trim-570-<arch>`。
 - build `587 <= x < 717` 使用 `6.18.18-trim-587-<arch>`。
-- build `>= 717` 使用 `6.18.18-trim-717-<arch>`。
+- build `717 <= x < 788` 使用 `6.18.18-trim-717-<arch>`。
+- build `>= 788` 使用 `6.18.18-trim-717-<arch>`，运行时内核版本可能是 `6.18.18.c<N>-trim`。
 - `nvidia.ko` 中读到的 module version 必须等于 `EXPECTED_DRIVER_VERSION`。
 
 ## CONVENTIONS

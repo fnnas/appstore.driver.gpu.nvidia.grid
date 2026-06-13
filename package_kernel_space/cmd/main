@@ -4,6 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/common"
 
 SUPPORTED_KERNEL_VER="6.18.18-trim"
+SUPPORTED_KERNEL_REGEX='^6[.]18[.]18([.]c[0-9]+)?-trim$'
 
 kernel_arch() {
     case "$(uname -m)" in
@@ -23,19 +24,33 @@ kernel_build_num() {
     uname -v | sed -n 's/.*#\([0-9][0-9]*\).*/\1/p' | head -n 1
 }
 
+kernel_package_base_version() {
+    local kernel_ver="$1"
+
+    if [[ ! "${kernel_ver}" =~ ${SUPPORTED_KERNEL_REGEX} ]]; then
+        report_error "Unsupported kernel version: ${kernel_ver}; supported: ${SUPPORTED_KERNEL_VER} or 6.18.18.c<N>-trim"
+        return 1
+    fi
+
+    echo "${SUPPORTED_KERNEL_VER}"
+}
+
 kernel_package_version() {
     local kernel_ver="$1"
     local build_num="$2"
     local arch="$3"
+    local package_kernel_ver
     local build_tag
 
-    if [[ "${kernel_ver}" != "${SUPPORTED_KERNEL_VER}" ]]; then
-        report_error "Unsupported kernel version: ${kernel_ver}; supported: ${SUPPORTED_KERNEL_VER}"
-        return 1
-    fi
+    package_kernel_ver="$(kernel_package_base_version "${kernel_ver}")" || return 1
 
     if [[ ! "${build_num}" =~ ^[0-9]+$ ]]; then
         report_error "Unsupported kernel build number for ${kernel_ver}: ${build_num}"
+        return 1
+    fi
+
+    if [[ "${kernel_ver}" =~ [.]c[0-9]+-trim$ ]] && (( build_num < 788 )); then
+        report_error "Unsupported kernel version/build combination: ${kernel_ver} #${build_num}; 6.18.18.c<N>-trim starts from build #788"
         return 1
     fi
 
@@ -49,7 +64,7 @@ kernel_package_version() {
         build_tag="717"
     fi
 
-    echo "${kernel_ver}-${build_tag}-${arch}"
+    echo "${package_kernel_ver}-${build_tag}-${arch}"
 }
 
 firmware_source_dir() {

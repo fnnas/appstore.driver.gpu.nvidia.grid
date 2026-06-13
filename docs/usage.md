@@ -95,12 +95,20 @@ uname -a
 Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86_64
 ```
 
+新版本系统也可能显示类似：
+
+```text
+Linux hp14q-fnos 6.18.18.c788-trim #788 SMP PREEMPT_DYNAMIC Fri Jun 12 01:42:14 UTC 2026 x86_64
+```
+
 ![查看 FNOS 内核版本](usage/5_check_fnos_kernel_version.png)
 
 需要关注两部分：
 
-- 内核版本：`6.18.18-trim`
+- 内核版本：`6.18.18-trim` 或 `6.18.18.c788-trim`
 - build number：`#473`
+
+`#788` 起系统可能显示 `6.18.18.c<N>-trim`，其中 `.c<N>` 会随系统版本变化。选择包时仍按 `6.18.18-trim` 文件名匹配，再根据 build number 选择 `427`、`570`、`587` 或 `717` 分组。
 
 本项目目前提供以下内核驱动包：
 
@@ -109,7 +117,8 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 | `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
 | `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
 | `#587` 到 `#716` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
-| `#717` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#717` 到 `#787` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#788` 及以上 | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
 
 如果选择 `535.309.01`，内核 build number 规则不变，只把包名中的应用包版本替换为 `535.309.01-1`：
 
@@ -118,12 +127,19 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 | `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk` |
 | `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk` |
 | `#587` 到 `#716` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk` |
-| `#717` 及以上 | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#717` 到 `#787` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#788` 及以上 | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk` |
 
 例如截图中的系统是 `6.18.18-trim #473`，应下载：
 
 ```text
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+```
+
+如果系统是 `6.18.18.c788-trim #788`，仍选择 `6.18.18-trim-717-amd64` 包：
+
+```text
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
 ```
 
 用户空间驱动包固定下载：
@@ -272,7 +288,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 如果安装失败，应用中心会显示明确错误信息。常见原因包括：
 
 - 内核包选错
-- 当前内核版本不是 `6.18.18-trim`
+- 当前内核版本不是 `6.18.18-trim` 或 `6.18.18.c<N>-trim`
 - firmware 缺失
 - initramfs 更新失败
 

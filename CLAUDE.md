@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
-当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。支持 FNOS/TRIM 内核 `6.18.18-trim`。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
+当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。支持 FNOS/TRIM 内核 `6.18.18-trim`；`#788` 起支持 `6.18.18.c<N>-trim`，带 `.c<N>` 的运行时内核版本仍映射到 `6.18.18-trim-<build>-<arch>` 包内模块目录。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
 
 ## 常用命令
 
