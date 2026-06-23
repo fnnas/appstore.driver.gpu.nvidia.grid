@@ -81,7 +81,7 @@ install-nvidia-grid-driver-before
 
 ## 2. 选择正确的内核驱动包
 
-### 2.1 查看 FNOS 内核版本和 build number
+### 2.1 查看 FNOS 内核版本
 
 打开虚拟机控制台或 SSH，执行：
 
@@ -106,13 +106,13 @@ Linux hp14q-fnos 6.18.18.c788-trim #788 SMP PREEMPT_DYNAMIC Fri Jun 12 01:42:14 
 需要关注两部分：
 
 - 内核版本：`6.18.18-trim` 或 `6.18.18.c788-trim`
-- build number：`#473`
+- build number：`#473`。只有旧 `6.18.18-trim` 需要用它选择分组包。
 
-`6.18.18.c788-trim` 是单独内核 ABI，必须选择单独编译的 `6.18.18.c788-trim-amd64` 包，不能继续使用 `6.18.18-trim-717-amd64`。后续如果系统显示其他完整内核名，也需要下载与 `uname -r` 对应的内核包；没有对应包时安装会失败并提示模块目录不存在。
+旧 `6.18.18-trim` 因为同一内核名下有多组 build，需要按 build number 选择 `427`、`570`、`587` 或 `717` 包。`6.18.18.c788-trim` 这类带构建号的完整内核名直接按 `uname -r` 选择对应包，例如 `6.18.18.c788-trim-amd64`。后续如果系统显示其他完整内核名，也需要下载与 `uname -r` 对应的内核包；没有对应包时安装会失败并提示模块目录不存在。
 
 本项目目前提供以下内核驱动包：
 
-| 当前内核 build number | 应选择的内核驱动包 |
+| 当前内核 / build | 应选择的内核驱动包 |
 | --- | --- |
 | `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
 | `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
@@ -120,9 +120,9 @@ Linux hp14q-fnos 6.18.18.c788-trim #788 SMP PREEMPT_DYNAMIC Fri Jun 12 01:42:14 
 | `#717` 到 `#787` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
 | `#788` 且内核为 `6.18.18.c788-trim` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
 
-如果选择 `535.309.01`，内核 build number 规则不变，只把包名中的应用包版本替换为 `535.309.01-1`：
+如果选择 `535.309.01`，内核包选择规则同上，只把包名中的应用包版本替换为 `535.309.01-1`：
 
-| 当前内核 build number | 应选择的 535 内核驱动包 |
+| 当前内核 / build | 应选择的 535 内核驱动包 |
 | --- | --- |
 | `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk` |
 | `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk` |
@@ -200,7 +200,7 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 
 你需要下载两个包：
 
-1. 一个内核驱动包，根据 `uname -a` 的 build number 选择。
+1. 一个内核驱动包，根据 `uname -r` 选择；旧 `6.18.18-trim` 再根据 `uname -a` 的 build number 选择分组包。
 2. 一个同版本用户空间驱动包，例如 `appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk`。
 
 以 `#473` 内核为例，应下载：
@@ -512,7 +512,7 @@ appstore.driver.gpu.nvidia.user-...
 uname -a
 ```
 
-按 build number 重新选择对应内核驱动包。
+按 `uname -r` 重新选择对应内核驱动包；旧 `6.18.18-trim` 再结合 build number 选择分组包。
 
 ### 9.3 安装后为什么一定要重启？
 
@@ -556,7 +556,7 @@ nvidia-smi
 
 1. 是否已经给虚拟机打快照，打了快照可以回滚再试试。
 2. 宿主机 vGPU KVM 驱动和客户机 GRID 驱动是否来自匹配的 vGPU 驱动版本组合。
-3. 内核版本和 build number 是否选对。
+3. 内核版本是否选对；旧 `6.18.18-trim` 的 build number 分组是否选对。
 4. 是否先安装内核驱动，重启后再安装用户空间驱动。
 5. 是否还安装着飞牛官方 NVIDIA 驱动。
 6. `dmesg` 是否有 NVIDIA 相关错误。

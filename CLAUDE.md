@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
-当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。支持 FNOS/TRIM 内核 `6.18.18-trim` 和 `6.18.18.c788-trim`。`6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录，目录不存在时安装报错。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
+当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。当前已构建 FNOS/TRIM 内核包包括 `6.18.18-trim` 和 `6.18.18.c788-trim`。旧 `6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录，目录不存在时安装报错。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
 
 ## 常用命令
 
@@ -135,7 +135,7 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 `.github/workflows/user_space.yml` 负责用户空间包。它把当前驱动版本对应的 NVIDIA GRID runfile 恢复到 `app/app/`，并仅在 `enable_nvlts=true` 时把 `nvlts-<driver>` 恢复到 `app/app/nvlts/`、验证 `nvlts` 二进制和 `configs` 目录存在。随后替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz` artifact；Release 上传前由 `test_release.yml` 改名为 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz.fpk`。
 
-`package_kernel_space/` 保存内核空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会安装 firmware，根据 `uname -r`、`uname -v` 中的 build number 和系统架构选择包内模块目录，把模块安装到解析出的 TRIM 模块根目录，切换 `alternatives/nvidia-gpu` 到 `../nvidia-gpu-kernel-grid`，执行 `depmod`，禁用 nouveau，并执行 `update-initramfs -u`。`cmd/main status` 检查链接到的 `nvidia.ko` 版本和 firmware 目录。`cmd/uninstall_init` 与 `cmd/upgrade_init` 调用 `restore_default_module_package`，仅当 alternatives 仍指向 `../nvidia-gpu-kernel-grid` 时恢复到已有 `../nvidia-gpu-proprietary`，再删除 GRID 模块目录并按需执行 `depmod` 和 `update-initramfs -u`。
+`package_kernel_space/` 保存内核空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会安装 firmware，根据 `uname -r` 和系统架构选择包内模块目录；只有旧 `6.18.18-trim` 会额外读取 `uname -v` 中的 build number 选择分组包。随后脚本会把模块安装到解析出的 TRIM 模块根目录，切换 `alternatives/nvidia-gpu` 到 `../nvidia-gpu-kernel-grid`，执行 `depmod`，禁用 nouveau，并执行 `update-initramfs -u`。`cmd/main status` 检查链接到的 `nvidia.ko` 版本和 firmware 目录。`cmd/uninstall_init` 与 `cmd/upgrade_init` 调用 `restore_default_module_package`，仅当 alternatives 仍指向 `../nvidia-gpu-kernel-grid` 时恢复到已有 `../nvidia-gpu-proprietary`，再删除 GRID 模块目录并按需执行 `depmod` 和 `update-initramfs -u`。
 
 `package_user_space/` 保存用户空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会先检查 `/proc/driver/nvidia/version` 是否匹配 `EXPECTED_DRIVER_VERSION`，再以 `--no-kernel-modules` 和 `--no-dkms` 方式运行 NVIDIA 安装器。`ENABLE_NVLTS=true` 时会安装 NVLTS 到 `/opt/nvlts`，通过 `cmd/write_gridd_conf` 写入 `/etc/nvidia/gridd.conf`，安装 `nvidia-gridd` systemd drop-in，启用并重启 `nvidia-gridd`；当前只有 `580.159.03-3` 启用。最后在相关 FNOS 服务存在时重启它们。`cmd/main status` 检查 `/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.<version>`。用户空间包的卸载和升级入口都会执行 `.run --uninstall` 流程，并仅在启用 NVLTS 时清理 NVLTS 文件和 systemd drop-in。
 
@@ -151,6 +151,6 @@ bash -n package_user_space/cmd/write_gridd_conf
 - `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`：`EXPECTED_DRIVER_VERSION` 占位符由 CI 替换，必须和 workflow 输入保持一致。
 - `package_user_space/cmd/common`：`NVIDIA_RUN_FILE` 由 `this_pack_grid_run` 替换。
 - `package_kernel_space/manifest` 和 `package_user_space/manifest`：占位符名称要和 workflow 中的 `sed` 替换逻辑保持一致。
-- 新增内核构建目标时，需要同步修改 `.github/workflows/kernel_space.yml` 的 matrix 和 `.github/workflows/test_release.yml` 的 release 上传 matrix。`package_kernel_space/cmd/main` 对非 `6.18.18-trim` 内核直接按 `uname -r` 匹配包内目录；只有新增 `6.18.18-trim` 的 build 分组时才需要改运行时选择逻辑。release 上传流程应继续保持先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`。
+- 新增内核构建目标时，需要同步修改 `.github/workflows/kernel_space.yml` 的 matrix 和 `.github/workflows/test_release.yml` 的 release 上传 matrix。`package_kernel_space/cmd/main` 默认按 `uname -r` 匹配包内目录；只有旧 `6.18.18-trim` 新增 build 分组时才需要改运行时选择逻辑。release 上传流程应继续保持先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`。
 
 内核空间和用户空间驱动版本必须一致。客户机 GRID 驱动还必须与 `readme.md` 和 `docs/usage.md` 中记录的宿主机 vGPU KVM 驱动分支匹配。本项目与飞牛官方应用中心 NVIDIA 驱动冲突，不应同时安装或启用。

@@ -258,10 +258,11 @@ ${TRIM_APPDEST}/app/firmware/
 运行时会根据以下信息选择对应模块目录：
 
 - `uname -r`
-- `uname -v` 中的 build number
 - `uname -m` 对应的架构
 
-当前内核选择逻辑：
+只有旧 `6.18.18-trim` 会额外读取 `uname -v` 中的 build number，用于兼容既有分组包。
+
+当前运行时选择逻辑：
 
 ```text
 6.18.18-trim + build < 570        -> 6.18.18-trim-427-<arch>
@@ -271,7 +272,7 @@ ${TRIM_APPDEST}/app/firmware/
 其他内核版本                           -> <uname -r>-<arch>
 ```
 
-`6.18.18-trim` 是历史同名多 build 规则，需要特殊分组。其他内核版本直接按 `uname -r` 拼出包内模块目录和 Release 资产名；如果包内没有对应目录，`install_modules` 会报 `NVIDIA kernel module directory not found` 并退出。后续新增内核时只需要新增对应构建镜像和 release 资产目标，运行时选择逻辑不需要为每个内核名继续加分支。
+`6.18.18-trim` 是历史同名多 build 规则，需要特殊分组以兼容旧包。其他内核版本直接按 `uname -r` 拼出包内模块目录和 Release 资产名；如果包内没有对应目录，`install_modules` 会报 `NVIDIA kernel module directory not found` 并退出。后续新增内核时只需要新增对应构建镜像和 release 资产目标，运行时选择逻辑不需要为每个内核名继续加分支。
 
 模块包目录格式：
 
