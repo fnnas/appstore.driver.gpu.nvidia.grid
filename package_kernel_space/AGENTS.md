@@ -20,7 +20,7 @@ package_kernel_space/
 
 | Task | Location | Notes |
 |------|----------|-------|
-| 运行时选择内核模块目录 | `cmd/main` | `kernel_package_version()` 按 `uname -r`、build number、架构选择。 |
+| 运行时选择内核模块目录 | `cmd/main` | 旧 `6.18.18-trim` 按 build number 分组；其他内核按 `<uname -r>-<arch>` 包内目录。 |
 | 解析 TRIM 模块根目录 | `cmd/common` | 优先跟随 `/lib/modules/.../updates/trim/alternatives`，再按版本/build fallback。 |
 | 安装 firmware | `cmd/main` | 来源 `${TRIM_APPDEST}/app/firmware`，目标 `/usr/lib/firmware/nvidia/<version>`。 |
 | 切换 alternatives | `cmd/main`、`cmd/common` | 安装切到 `../nvidia-gpu-kernel-grid`；卸载/升级仅在当前仍指向 GRID 时恢复到已有 `../nvidia-gpu-proprietary`。 |
@@ -29,12 +29,13 @@ package_kernel_space/
 
 ## RUNTIME CONTRACT
 
-- 当前支持内核版本接受 `6.18.18-trim`；`#788` 起接受 `6.18.18.c<N>-trim`，运行时统一映射到 `6.18.18-trim-<build>-<arch>` 包内模块目录。
+- 旧 `6.18.18-trim` 仍按 build number 分组，兼容既有 `427`、`570`、`587`、`717` 包。
+- 其他内核版本直接映射到 `<uname -r>-<arch>` 包内模块目录；目录不存在时安装阶段报错退出。
 - build `< 570` 使用 `6.18.18-trim-427-<arch>`。
 - build `570 <= x < 587` 使用 `6.18.18-trim-570-<arch>`。
 - build `587 <= x < 717` 使用 `6.18.18-trim-587-<arch>`。
-- build `717 <= x < 788` 使用 `6.18.18-trim-717-<arch>`。
-- build `>= 788` 使用 `6.18.18-trim-717-<arch>`，运行时内核版本可能是 `6.18.18.c<N>-trim`。
+- build `>= 717` 使用 `6.18.18-trim-717-<arch>`。
+- 例如 `6.18.18.c788-trim` 使用 `6.18.18.c788-trim-<arch>`。
 - `nvidia.ko` 中读到的 module version 必须等于 `EXPECTED_DRIVER_VERSION`。
 
 ## CONVENTIONS
@@ -47,7 +48,7 @@ package_kernel_space/
 
 ## ANTI-PATTERNS
 
-- 不要新增内核构建目标而不更新 `cmd/main` 的 build number 选择逻辑。
+- 不要新增内核构建目标而不更新 workflow matrix 和 release asset matrix；只有旧 `6.18.18-trim` 的同名 build 分组需要改运行时逻辑。
 - 不要删除卸载/升级阶段的 `restore_default_module_package`，否则可能把系统 alternatives 留在 GRID 模块上。
 - 不要在卸载/升级阶段强制创建 alternatives 目录或覆盖非 GRID 目标；只能撤销本包仍在接管的状态。
 - 不要跳过 `depmod` 或 `update-initramfs -u`。

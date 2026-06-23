@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
-当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。支持 FNOS/TRIM 内核 `6.18.18-trim`；`#788` 起支持 `6.18.18.c<N>-trim`，带 `.c<N>` 的运行时内核版本仍映射到 `6.18.18-trim-<build>-<arch>` 包内模块目录。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
+当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。支持 FNOS/TRIM 内核 `6.18.18-trim` 和 `6.18.18.c788-trim`。`6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录，目录不存在时安装报错。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
 
 ## 常用命令
 
@@ -131,7 +131,7 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 `.github/workflows/nvidia-grid-kernel-src.yml` 下载 NVIDIA GRID `.run` 安装器，将其解包到 `drvpkg`，通过 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试修改 `drvpkg/kernel/nvidia/nv-kernel.o_binary`，再按驱动版本发布三个 artifact：`nvidia-grid-kernel-src-<driver>` 保存 kernel source，`nvidia-grid-firmware-<driver>` 保存 firmware，`nvidia-grid-runfile-<driver>` 保存原始 `.run` 文件。patch 逻辑是 pattern 命中多少就替换多少；未命中的 pattern 会按名称输出 warning；脚本级失败也只输出 warning 并继续构建。
 
-`.github/workflows/kernel_space.yml` 在 FNOS 内核头文件容器中编译 NVIDIA 内核模块。当前 matrix 覆盖 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64`、`6.18.18-trim-587-amd64` 和 `6.18.18-trim-717-amd64`。每个目标都会在解包出的 NVIDIA `kernel/` 目录中执行 `make -j"$(nproc)"`，把生成的 `*.ko` 复制到 `app/app/appstore.driver.gpu.nvidia.ko_<kernel-name>/`，恢复 firmware 到 `app/app/firmware/`，替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `.tgz` 内核空间驱动包 artifact；Release 上传前由 `test_release.yml` 改名为 `.tgz.fpk`。
+`.github/workflows/kernel_space.yml` 在 FNOS 内核头文件容器中编译 NVIDIA 内核模块。当前 matrix 覆盖 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64`、`6.18.18-trim-587-amd64`、`6.18.18-trim-717-amd64` 和 `6.18.18.c788-trim-amd64`。每个目标都会在解包出的 NVIDIA `kernel/` 目录中执行 `make -j"$(nproc)"`，把生成的 `*.ko` 复制到 `app/app/appstore.driver.gpu.nvidia.ko_<kernel-name>/`，恢复 firmware 到 `app/app/firmware/`，替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `.tgz` 内核空间驱动包 artifact；Release 上传前由 `test_release.yml` 改名为 `.tgz.fpk`。
 
 `.github/workflows/user_space.yml` 负责用户空间包。它把当前驱动版本对应的 NVIDIA GRID runfile 恢复到 `app/app/`，并仅在 `enable_nvlts=true` 时把 `nvlts-<driver>` 恢复到 `app/app/nvlts/`、验证 `nvlts` 二进制和 `configs` 目录存在。随后替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz` artifact；Release 上传前由 `test_release.yml` 改名为 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz.fpk`。
 
@@ -151,6 +151,6 @@ bash -n package_user_space/cmd/write_gridd_conf
 - `package_kernel_space/cmd/common` 和 `package_user_space/cmd/common`：`EXPECTED_DRIVER_VERSION` 占位符由 CI 替换，必须和 workflow 输入保持一致。
 - `package_user_space/cmd/common`：`NVIDIA_RUN_FILE` 由 `this_pack_grid_run` 替换。
 - `package_kernel_space/manifest` 和 `package_user_space/manifest`：占位符名称要和 workflow 中的 `sed` 替换逻辑保持一致。
-- 新增内核构建目标时，需要同步修改 `.github/workflows/kernel_space.yml` 的 matrix、`.github/workflows/test_release.yml` 的 release 上传 matrix，以及 `package_kernel_space/cmd/main` 中的运行时选择逻辑。release 上传流程应继续保持先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`。
+- 新增内核构建目标时，需要同步修改 `.github/workflows/kernel_space.yml` 的 matrix 和 `.github/workflows/test_release.yml` 的 release 上传 matrix。`package_kernel_space/cmd/main` 对非 `6.18.18-trim` 内核直接按 `uname -r` 匹配包内目录；只有新增 `6.18.18-trim` 的 build 分组时才需要改运行时选择逻辑。release 上传流程应继续保持先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`。
 
 内核空间和用户空间驱动版本必须一致。客户机 GRID 驱动还必须与 `readme.md` 和 `docs/usage.md` 中记录的宿主机 vGPU KVM 驱动分支匹配。本项目与飞牛官方应用中心 NVIDIA 驱动冲突，不应同时安装或启用。

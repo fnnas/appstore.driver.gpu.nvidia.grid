@@ -47,7 +47,7 @@ docs/
 | GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
 | GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
 
-- 当前支持内核：`6.18.18-trim`；`#788` 起支持 `6.18.18.c<N>-trim`
+- 当前已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`
 - 当前构建架构：`amd64`
 - 应用中心 `platform`：`x86`
 
@@ -60,11 +60,13 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
@@ -162,6 +164,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - `6.18.18-trim-570-amd64`
 - `6.18.18-trim-587-amd64`
 - `6.18.18-trim-717-amd64`
+- `6.18.18.c788-trim-amd64`
 
 执行流程：
 
@@ -261,14 +264,14 @@ ${TRIM_APPDEST}/app/firmware/
 当前内核选择逻辑：
 
 ```text
-build < 570        -> 6.18.18-trim-427-<arch>
-570 <= build < 587 -> 6.18.18-trim-570-<arch>
-587 <= build < 717 -> 6.18.18-trim-587-<arch>
-717 <= build < 788 -> 6.18.18-trim-717-<arch>
-build >= 788       -> 6.18.18-trim-717-<arch>
+6.18.18-trim + build < 570        -> 6.18.18-trim-427-<arch>
+6.18.18-trim + 570 <= build < 587 -> 6.18.18-trim-570-<arch>
+6.18.18-trim + 587 <= build < 717 -> 6.18.18-trim-587-<arch>
+6.18.18-trim + build >= 717       -> 6.18.18-trim-717-<arch>
+其他内核版本                           -> <uname -r>-<arch>
 ```
 
-`6.18.18.c<N>-trim` 只用于运行时兼容 `#788` 起新系统的 `uname -r`，包内模块目录和 Release 资产名仍然使用 `6.18.18-trim-<build>-<arch>`。
+`6.18.18-trim` 是历史同名多 build 规则，需要特殊分组。其他内核版本直接按 `uname -r` 拼出包内模块目录和 Release 资产名；如果包内没有对应目录，`install_modules` 会报 `NVIDIA kernel module directory not found` 并退出。后续新增内核时只需要新增对应构建镜像和 release 资产目标，运行时选择逻辑不需要为每个内核名继续加分支。
 
 模块包目录格式：
 
