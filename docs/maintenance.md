@@ -47,7 +47,7 @@ docs/
 | GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
 | GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
 
-- 当前已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`
+- 当前已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`
 - 当前构建架构：`amd64`
 - 应用中心 `platform`：`x86`
 
@@ -61,12 +61,14 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
@@ -165,6 +167,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - `6.18.18-trim-587-amd64`
 - `6.18.18-trim-717-amd64`
 - `6.18.18.c788-trim-amd64`
+- `6.18.18.c877-trim-amd64`
 
 执行流程：
 

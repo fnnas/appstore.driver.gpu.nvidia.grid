@@ -35,7 +35,7 @@ package_kernel_space/
 - build `570 <= x < 587` 使用 `6.18.18-trim-570-<arch>`。
 - build `587 <= x < 717` 使用 `6.18.18-trim-587-<arch>`。
 - build `>= 717` 使用 `6.18.18-trim-717-<arch>`。
-- 例如 `6.18.18.c788-trim` 使用 `6.18.18.c788-trim-<arch>`。
+- 例如 `6.18.18.c788-trim` 使用 `6.18.18.c788-trim-<arch>`，`6.18.18.c877-trim` 使用 `6.18.18.c877-trim-<arch>`。
 - `nvidia.ko` 中读到的 module version 必须等于 `EXPECTED_DRIVER_VERSION`。
 
 ## CONVENTIONS

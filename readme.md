@@ -14,7 +14,7 @@
 | GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
 | GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
 
-- 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`
+- 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`
 - 支持架构：`x86`
 
 ## 文档入口
@@ -29,7 +29,7 @@
 1. 一个内核空间驱动包，根据 FNOS 内核版本选择；旧 `6.18.18-trim` 还需要结合 build number 选择。
 2. 一个同版本用户空间驱动包，例如 `appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk`。
 
-内核驱动包选择规则：先确认 `uname -r`。旧 `6.18.18-trim` 因为同一内核名下存在多组 build，需要再按 build number 选择 `427`、`570`、`587` 或 `717` 包。其他带构建号的完整内核名直接按 `uname -r` 选择，例如 `6.18.18.c788-trim` 选择 `6.18.18.c788-trim-amd64` 包；如果没有对应包，安装时会提示模块目录不存在。
+内核驱动包选择规则：先确认 `uname -r`。旧 `6.18.18-trim` 因为同一内核名下存在多组 build，需要再按 build number 选择 `427`、`570`、`587` 或 `717` 包。其他带构建号的完整内核名直接按 `uname -r` 选择，例如 `6.18.18.c877-trim` 选择 `6.18.18.c877-trim-amd64` 包；如果没有对应包，安装时会提示模块目录不存在。
 
 当前已构建内核包选择规则：
 
@@ -40,12 +40,14 @@
 | `6.18.18-trim` | `#587` 到 `#716`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
 | `6.18.18-trim` | `#717` 到 `#787`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
 | `6.18.18.c788-trim` | `#788`        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
+| `6.18.18.c877-trim` | `#877`        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk` |
 
 如果使用 GRID 16.14 / `535.309.01` 版本，包名中的应用包版本需要同步换成 `535.309.01-1`，例如：
 
 ```text
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 

@@ -57,6 +57,10 @@ jobs:
             kernel_ver: "6.18.18.c788-trim"
             container_image: "makedie/fnos:kernHead-6.18.18.c788-trim-amd64"
             manifest_platform: "x86"
+          - kernel_name: "6.18.18.c877-trim-amd64"
+            kernel_ver: "6.18.18.c877-trim"
+            container_image: "makedie/fnos:kernHead-6.18.18.c877-trim-amd64"
+            manifest_platform: "x86"
     container:
       image: ${{ matrix.container_image }}
       options: -v ${{ github.workspace }}:${{ github.workspace }}
