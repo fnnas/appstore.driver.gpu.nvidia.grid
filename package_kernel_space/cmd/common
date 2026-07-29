@@ -9,12 +9,20 @@ MODULE_GROUP="nvidia-gpu"
 MODULE_VARIANT="nvidia-gpu-kernel-grid"
 DEFAULT_MODULE_VARIANT="nvidia-gpu-proprietary"
 MIN_ROOT_FREE_KB=$((2 * 1024 * 1024))
+CHROOT_BUILD_FAILURE_LOCK="${CHROOT_BUILD_FAILURE_LOCK:-/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed}"
 
 log_msg() {
     local msg="$1"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}"
     mkdir -p "$(dirname "${LOG_FILE}")"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${msg}" >> "${LOG_FILE}"
+}
+
+reset_user_visible_log() {
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
+        : > "${TRIM_TEMP_LOGFILE}"
+    fi
 }
 
 report_error() {
@@ -26,8 +34,43 @@ report_error() {
 
     if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
         mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
-        printf "%s\n" "${msg}" > "${TRIM_TEMP_LOGFILE}"
+        printf "%s\n" "${msg}" >> "${TRIM_TEMP_LOGFILE}"
     fi
+}
+
+run_with_user_visible_log() {
+    local command_status
+
+    mkdir -p "$(dirname "${LOG_FILE}")"
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+        mkdir -p "$(dirname "${TRIM_TEMP_LOGFILE}")"
+        "$@" 2>&1 | tee -a "${LOG_FILE}" "${TRIM_TEMP_LOGFILE}"
+    else
+        "$@" 2>&1 | tee -a "${LOG_FILE}"
+    fi
+    command_status=${PIPESTATUS[0]}
+    return "${command_status}"
+}
+
+create_chroot_build_failure_lock() {
+    local kernel_ver="$1"
+
+    if ! (
+        set -o noclobber
+        printf 'driver=%s\nkernel=%s\nstarted_at=%s\n' \
+            "${EXPECTED_DRIVER_VERSION}" "${kernel_ver}" "$(date -Iseconds)" \
+            > "${CHROOT_BUILD_FAILURE_LOCK}"
+    ) 2>/dev/null; then
+        report_error "Failed to create NVIDIA chroot build failure lock: ${CHROOT_BUILD_FAILURE_LOCK}"
+        return 1
+    fi
+}
+
+clear_chroot_build_failure_lock() {
+    rm -f -- "${CHROOT_BUILD_FAILURE_LOCK}" || {
+        report_error "Failed to remove NVIDIA chroot build failure lock: ${CHROOT_BUILD_FAILURE_LOCK}"
+        return 1
+    }
 }
 
 check_root_free_space() {

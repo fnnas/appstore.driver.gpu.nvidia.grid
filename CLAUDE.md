@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
-当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。当前已构建 FNOS/TRIM 内核包包括 `6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim` 和 `6.18.18.c938-trim`。旧 `6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录，目录不存在时安装报错。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
+当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。当前已构建 FNOS/TRIM 内核包包括 `6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim` 和 `6.18.18.c938-trim`。旧 `6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录。每个驱动版本还发布一个不含预构建 `.ko` 的 `chroot-amd64` 源码包，用于本机编译当前内核模块。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
 
 ## 常用命令
 
@@ -117,6 +117,7 @@ find package_kernel_space/cmd package_user_space/cmd -maxdepth 1 -type f -print0
 
 ```bash
 bash -n package_kernel_space/cmd/main
+bash -n package_kernel_space/cmd/build_module_chroot
 bash -n package_user_space/cmd/main
 bash -n package_user_space/cmd/write_gridd_conf
 ```
@@ -131,11 +132,11 @@ bash -n package_user_space/cmd/write_gridd_conf
 
 `.github/workflows/nvidia-grid-kernel-src.yml` 下载 NVIDIA GRID `.run` 安装器，将其解包到 `drvpkg`，通过 `python3 scripts/patch-nvidia-grid-kernel-binary.py` 尝试修改 `drvpkg/kernel/nvidia/nv-kernel.o_binary`，再按驱动版本发布三个 artifact：`nvidia-grid-kernel-src-<driver>` 保存 kernel source，`nvidia-grid-firmware-<driver>` 保存 firmware，`nvidia-grid-runfile-<driver>` 保存原始 `.run` 文件。patch 逻辑是 pattern 命中多少就替换多少；未命中的 pattern 会按名称输出 warning；脚本级失败也只输出 warning 并继续构建。
 
-`.github/workflows/kernel_space.yml` 在 FNOS 内核头文件容器中编译 NVIDIA 内核模块。当前 matrix 覆盖 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64`、`6.18.18-trim-587-amd64`、`6.18.18-trim-717-amd64`、`6.18.18.c788-trim-amd64`、`6.18.18.c877-trim-amd64` 和 `6.18.18.c938-trim-amd64`。每个目标都会在解包出的 NVIDIA `kernel/` 目录中执行 `make -j"$(nproc)"`，把生成的 `*.ko` 复制到 `app/app/appstore.driver.gpu.nvidia.ko_<kernel-name>/`，恢复 firmware 到 `app/app/firmware/`，替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `.tgz` 内核空间驱动包 artifact；Release 上传前由 `test_release.yml` 改名为 `.tgz.fpk`。
+`.github/workflows/kernel_space.yml` 在 FNOS 内核头文件容器中编译 NVIDIA 内核模块。当前 matrix 覆盖 `6.18.18-trim-427-amd64`、`6.18.18-trim-570-amd64`、`6.18.18-trim-587-amd64`、`6.18.18-trim-717-amd64`、`6.18.18.c788-trim-amd64`、`6.18.18.c877-trim-amd64` 和 `6.18.18.c938-trim-amd64`。每个目标都会在解包出的 NVIDIA `kernel/` 目录中执行 `make -j"$(nproc)"`，把生成的 `*.ko` 复制到 `app/app/appstore.driver.gpu.nvidia.ko_<kernel-name>/`，恢复 firmware 到 `app/app/firmware/`，替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `.tgz` 内核空间驱动包 artifact。独立的 `pack_chroot` job 会把已 patch 源码和 firmware 打入 `chroot-amd64` 包，并在打包前后确认 payload 不含 `.ko`；Release 上传前统一由 `test_release.yml` 改名为 `.tgz.fpk`。
 
 `.github/workflows/user_space.yml` 负责用户空间包。它把当前驱动版本对应的 NVIDIA GRID runfile 恢复到 `app/app/`，并仅在 `enable_nvlts=true` 时把 `nvlts-<driver>` 恢复到 `app/app/nvlts/`、验证 `nvlts` 二进制和 `configs` 目录存在。随后替换 manifest 和脚本占位符，生成 `app.tgz`，最后上传 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz` artifact；Release 上传前由 `test_release.yml` 改名为 `appstore.driver.gpu.nvidia.user-<version>-x86.tgz.fpk`。
 
-`package_kernel_space/` 保存内核空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会安装 firmware，根据 `uname -r` 和系统架构选择包内模块目录；只有旧 `6.18.18-trim` 会额外读取 `uname -v` 中的 build number 选择分组包。随后脚本会把模块安装到解析出的 TRIM 模块根目录，切换 `alternatives/nvidia-gpu` 到 `../nvidia-gpu-kernel-grid`，执行 `depmod`，禁用 nouveau，并执行 `update-initramfs -u`。`cmd/main status` 检查链接到的 `nvidia.ko` 版本和 firmware 目录。`cmd/uninstall_init` 与 `cmd/upgrade_init` 调用 `restore_default_module_package`，仅当 alternatives 仍指向 `../nvidia-gpu-kernel-grid` 时恢复到已有 `../nvidia-gpu-proprietary`，再删除 GRID 模块目录并按需执行 `depmod` 和 `update-initramfs -u`。
+`package_kernel_space/` 保存内核空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会安装 firmware，根据 `uname -r` 和系统架构选择包内模块目录；只有旧 `6.18.18-trim` 会额外读取 `uname -v` 中的 build number 选择分组包。若目录中没有预构建 `nvidia.ko` 但包内存在 `app/nvidia-kernel-source/kernel`，独立的 `cmd/build_module_chroot` 会在 overlay/chroot 中编译，并把产物写回既有命名目录。随后脚本会把模块安装到解析出的 TRIM 模块根目录，切换 `alternatives/nvidia-gpu` 到 `../nvidia-gpu-kernel-grid`，执行 `depmod`，禁用 nouveau，并执行 `update-initramfs -u`。构建失败锁固定在 `/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed`，失败或中断时保留，成功、更新或卸载时清除。`cmd/main status` 检查链接到的 `nvidia.ko` 版本和 firmware 目录。`cmd/uninstall_init` 与 `cmd/upgrade_init` 调用 `restore_default_module_package`，仅当 alternatives 仍指向 `../nvidia-gpu-kernel-grid` 时恢复到已有 `../nvidia-gpu-proprietary`，再删除 GRID 模块目录并按需执行 `depmod` 和 `update-initramfs -u`。
 
 `package_user_space/` 保存用户空间 FNOS 应用的 manifest、配置和生命周期脚本。`cmd/main start` 会先检查 `/proc/driver/nvidia/version` 是否匹配 `EXPECTED_DRIVER_VERSION`，再以 `--no-kernel-modules` 和 `--no-dkms` 方式运行 NVIDIA 安装器。`ENABLE_NVLTS=true` 时会安装 NVLTS 到 `/opt/nvlts`，通过 `cmd/write_gridd_conf` 写入 `/etc/nvidia/gridd.conf`，安装 `nvidia-gridd` systemd drop-in，启用并重启 `nvidia-gridd`；当前只有 `580.159.03-3` 启用。最后在相关 FNOS 服务存在时重启它们。`cmd/main status` 检查 `/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.<version>`。用户空间包的卸载和升级入口都会执行 `.run --uninstall` 流程，并仅在启用 NVLTS 时清理 NVLTS 文件和 systemd drop-in。
 

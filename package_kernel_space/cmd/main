@@ -4,6 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/common"
 
 LEGACY_GROUPED_KERNEL_VER="6.18.18-trim"
+CHROOT_BUILD_SCRIPT="${CHROOT_BUILD_SCRIPT:-${SCRIPT_DIR}/build_module_chroot}"
 
 kernel_arch() {
     case "$(uname -m)" in
@@ -86,6 +87,83 @@ source_module_dir() {
     package_version="$(kernel_package_version "$(uname -r)" "${build_num}" "${arch}")" || return 1
 
     echo "${PACKAGE_BASE}/app/${PROJ_NAME}_${package_version}"
+}
+
+kernel_source_dir() {
+    echo "${PACKAGE_BASE}/app/nvidia-kernel-source/kernel"
+}
+
+clear_chroot_module_payload() {
+    local module_dir="$1"
+
+    case "${module_dir}" in
+    "${PACKAGE_BASE}/app/${PROJ_NAME}_"*)
+        rm -rf -- "${module_dir}" || {
+            report_error "Failed to clean NVIDIA chroot build output directory: ${module_dir}"
+            return 1
+        }
+        ;;
+    *)
+        report_error "Refusing to clean unexpected NVIDIA chroot build output directory: ${module_dir}"
+        return 1
+        ;;
+    esac
+}
+
+prepare_module_payload() {
+    local built_version
+    local kernel_ver
+    local module_dir
+    local source_dir
+
+    kernel_ver="$(uname -r)"
+    module_dir="$(source_module_dir)" || return 1
+
+    if [[ -f "${module_dir}/nvidia.ko" ]]; then
+        log_msg "Using prebuilt NVIDIA kernel modules from ${module_dir}"
+        return 0
+    fi
+
+    source_dir="$(kernel_source_dir)"
+    if [[ ! -f "${source_dir}/Makefile" ]]; then
+        log_msg "No prebuilt NVIDIA modules or packaged kernel source found; continuing with the existing install checks"
+        return 0
+    fi
+
+    if [[ -f "${CHROOT_BUILD_FAILURE_LOCK}" ]]; then
+        report_error "A previous NVIDIA chroot build failed or was interrupted. Restart the device to clear /tmp, or manually delete ${CHROOT_BUILD_FAILURE_LOCK} before trying again."
+        return 1
+    fi
+
+    create_chroot_build_failure_lock "${kernel_ver}" || return 1
+    clear_chroot_module_payload "${module_dir}" || return 1
+    log_msg "No prebuilt NVIDIA modules found for ${kernel_ver}; starting chroot build from ${source_dir}"
+
+    if ! run_with_user_visible_log bash "${CHROOT_BUILD_SCRIPT}" "${kernel_ver}" "${source_dir}" "${module_dir}"; then
+        clear_chroot_module_payload "${module_dir}" || true
+        report_error "Failed to build NVIDIA kernel modules for ${kernel_ver} in chroot. The retry lock remains at ${CHROOT_BUILD_FAILURE_LOCK}."
+        return 1
+    fi
+
+    if [[ ! -f "${module_dir}/nvidia.ko" ]]; then
+        clear_chroot_module_payload "${module_dir}" || true
+        report_error "NVIDIA chroot build completed without producing nvidia.ko for ${kernel_ver}. The retry lock remains at ${CHROOT_BUILD_FAILURE_LOCK}."
+        return 1
+    fi
+
+    built_version="$(module_version "${module_dir}/nvidia.ko")" || {
+        clear_chroot_module_payload "${module_dir}" || true
+        report_error "Unable to read the chroot-built NVIDIA module version for ${kernel_ver}. The retry lock remains at ${CHROOT_BUILD_FAILURE_LOCK}."
+        return 1
+    }
+    if [[ "${built_version}" != "${EXPECTED_DRIVER_VERSION}" ]]; then
+        clear_chroot_module_payload "${module_dir}" || true
+        report_error "Unexpected chroot-built NVIDIA module version: ${built_version}; expected: ${EXPECTED_DRIVER_VERSION}. The retry lock remains at ${CHROOT_BUILD_FAILURE_LOCK}."
+        return 1
+    fi
+
+    clear_chroot_build_failure_lock || return 1
+    log_msg "Stored chroot-built NVIDIA modules in ${module_dir}"
 }
 
 install_modules() {
@@ -220,9 +298,10 @@ check_status() {
 main() {
     case "$1" in
     start)
+        reset_user_visible_log
         uname -a
         log_msg "kernel_info $(uname -r) $(kernel_build_num)"
-        check_root_free_space && install_firmware && install_modules
+        check_root_free_space && install_firmware && prepare_module_payload && install_modules
         ;;
     stop)
         log_msg "Stop requested; module alternative link is restored by uninstall_init or upgrade_init"

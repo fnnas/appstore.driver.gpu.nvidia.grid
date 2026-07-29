@@ -30,7 +30,9 @@ test_release.yml
 │   └── nvidia-grid-runfile-<driver>     -> user_space.yml
 ├── nvlts.yml
 │   └── nvlts-580.159.03       -> user_space.yml for 580 only
-├── kernel_space.yml            -> appstore.driver.gpu.nvidia.ko-<version>-<kernel>.tgz
+├── kernel_space.yml
+│   ├── appstore.driver.gpu.nvidia.ko-<version>-<kernel>.tgz
+│   └── appstore.driver.gpu.nvidia.ko-<version>-chroot-amd64.tgz
 └── user_space.yml              -> appstore.driver.gpu.nvidia.user-<version>-x86.tgz
 ```
 
@@ -46,6 +48,7 @@ test_release.yml
 - `prune_ccache` 只按本次勾选的驱动版本清理内核 ccache；不要把未勾选版本纳入删除正则。
 - `plan_build` 的 kernels 列表必须覆盖 `kernel_space.yml` 的全部内核 matrix。
 - `manifest_platform` 当前为应用中心 `x86`，内核构建架构当前为 `amd64`。
+- `kernel_space.yml` 的 `pack_chroot` 每个驱动版本只运行一次，源码包必须同时在解包后和打包前确认不存在 `.ko`。
 
 ## ANTI-PATTERNS
 
@@ -53,6 +56,7 @@ test_release.yml
 - 不要把 `nvidia-grid-kernel-src.yml` 中 patch 失败改成硬失败，除非同时更新维护文档和发布策略。
 - 不要绕过 `static_checks.yml` 的版本一致性逻辑更新文档版本。
 - 不要把下载出的 NVIDIA runfile 或 NVLTS 内容作为源码提交。
+- 不要漏掉 `chroot-amd64` release asset；它与逐内核预构建包并行发布，但 appname 仍是 `appstore.driver.gpu.nvidia.ko`。
 
 ## VALIDATION
 

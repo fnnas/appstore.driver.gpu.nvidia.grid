@@ -24,6 +24,7 @@
 |------|----------|-------|
 | 调整驱动版本、包版本、GRID runfile 或 NVLTS | `.github/workflows/test_release.yml` | 驱动版本清单使用 `this_pack_version`、`this_pack_nvidia_driver_version`、`this_pack_grid_download_url`、`this_pack_grid_run`。 |
 | 修改内核模块构建目标 | `.github/workflows/kernel_space.yml`、`.github/workflows/test_release.yml`、`package_kernel_space/cmd/main` | matrix 和 release 上传 matrix 必须同步；运行时默认按 `uname -r` 匹配目录，只有旧 `6.18.18-trim` 新增 build 分组时才需要改运行时逻辑。 |
+| 修改本机 chroot 构建 | `package_kernel_space/cmd/build_module_chroot`、`package_kernel_space/cmd/main`、`.github/workflows/kernel_space.yml` | `chroot-amd64` 包只携带源码和 firmware；编译产物必须先写入既有 `source_module_dir`。 |
 | 修改用户空间打包流程 | `.github/workflows/user_space.yml`、`package_user_space/cmd/common` | `.run` 文件名由 `this_pack_grid_run` 渲染。 |
 | 修改 FNOS 内核空间安装行为 | `package_kernel_space/cmd/main`、`package_kernel_space/cmd/common` | 涉及 firmware、alternatives、`depmod`、nouveau blacklist、initramfs。 |
 | 修改 FNOS 用户空间安装行为 | `package_user_space/cmd/main`、`package_user_space/cmd/common`、`package_user_space/cmd/write_gridd_conf` | 先校验内核驱动版本，再安装用户空间驱动；NVLTS 仅 580 包启用。 |
@@ -36,6 +37,7 @@
 - 当前支持 GRID 16.14：宿主机示例 `535.309.01`，客户机 `535.309.01`，应用包版本 `535.309.01-1`。
 - 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`；旧 `6.18.18-trim` 按 build 分组，其他内核名直接按 `uname -r` 匹配对应包内模块目录。
 - 当前内核包分组：`427`、`570`、`587`、`717`、`c788`、`c877`、`c938`。
+- 每个驱动版本另有一个 `chroot-amd64` 源码包，不含预构建 `.ko`，用于本机编译当前内核模块。
 
 同一 NVIDIA 驱动版本下只发包修订时，只递增应用包版本后缀，例如 `-2` 到 `-3`。升级 NVIDIA 驱动时才同步改变前面的驱动版本号。
 
@@ -46,6 +48,7 @@
 - manifest 占位符名称必须和 workflow 中 `sed` 替换逻辑保持一致。
 - `app/app` 和 `app/ui` 是 CI 打包暂存目录；源码中只保留 `.gitkeep`。
 - GitHub Actions 中间 artifact 使用 `.tgz`，GitHub Release 上传前必须改名为 `.tgz.fpk`。
+- chroot 构建失败锁固定为 `/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed`；成功、更新或卸载时清除，失败或中断时保留。
 - 本仓库没有 package manager 配置，也没有常规本地测试框架；以 `.github/workflows/static_checks.yml` 为静态检查权威来源。
 - shell 生命周期脚本没有 `.sh` 后缀；按 shebang 和 `bash -n` 识别，不要只搜索 `*.sh`。
 

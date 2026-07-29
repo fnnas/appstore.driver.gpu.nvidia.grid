@@ -210,3 +210,68 @@ jobs:
         with:
           name: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
           path: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
+
+  pack_chroot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Download NVIDIA kernel source
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.driver_pkg_artifact }}
+          path: .
+
+      - name: Add NVIDIA kernel source to package payload
+        run: |
+          set -euo pipefail
+          mkdir -p app/app/nvidia-kernel-source
+          tar zxf nvidia-kernel-src.tgz -C app/app/nvidia-kernel-source
+          test -f app/app/nvidia-kernel-source/kernel/Makefile
+          if find app/app/nvidia-kernel-source -name '*.ko' -print -quit | grep -q .; then
+            echo "The chroot package must not contain prebuilt kernel modules." >&2
+            exit 1
+          fi
+
+      - name: Restore NVIDIA firmware artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.firmware_artifact }}
+          path: app/app/firmware/
+
+      - name: Render chroot kernel package metadata
+        run: |
+          sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/manifest
+          sed "s|this_pack_nvidia_driver_page_url|${{ inputs.this_pack_nvidia_driver_page_url }}|g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_manifest_platform/x86/g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_manifest_kernel/chroot-amd64（本机编译）/g" -i ./package_kernel_space/manifest
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/cmd/common
+          sed "s/this_pack_manifest_version/${{ inputs.this_pack_version }}/g" -i ./package_kernel_space/wizard/install
+          sed "s/this_pack_nvidia_driver_version/${{ inputs.this_pack_nvidia_driver_version }}/g" -i ./package_kernel_space/wizard/install
+          sed "s/this_pack_manifest_kernel/chroot-amd64（本机编译）/g" -i ./package_kernel_space/wizard/install
+
+      - name: Verify chroot package contains no prebuilt modules
+        run: |
+          set -euo pipefail
+          if find app/app -name '*.ko' -print -quit | grep -q .; then
+            echo "The chroot package payload contains a prebuilt kernel module." >&2
+            exit 1
+          fi
+
+      - name: Create chroot kernel app payload archive
+        run: |
+          cd app/
+          tar zcvf app.tgz app ui
+          mv app.tgz ../package_kernel_space/
+
+      - name: Create chroot kernel-space package archive
+        run: |
+          tar zcvf appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz package_kernel_space
+
+      - name: Upload chroot kernel-space package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz
+          path: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz

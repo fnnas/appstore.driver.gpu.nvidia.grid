@@ -77,6 +77,14 @@ jobs:
           if kernels != expected_kernels:
               print(f"Unexpected kernel package suffixes: {sorted(kernels)}")
               raise SystemExit(1)
+          chroot_assets = re.findall(
+              r'^\s+"package_name_suffix": "chroot-amd64",$',
+              workflow,
+              flags=re.M,
+          )
+          if len(chroot_assets) != 1:
+              print("Expected exactly one chroot-amd64 release asset definition")
+              raise SystemExit(1)
           PY
 
   plan_build:
@@ -170,6 +178,11 @@ jobs:
                       "package_name_prefix": "appstore.driver.gpu.nvidia.ko",
                       "package_name_suffix": kernel,
                   })
+              release_assets_matrix.append({
+                  "this_pack_version": driver["this_pack_version"],
+                  "package_name_prefix": "appstore.driver.gpu.nvidia.ko",
+                  "package_name_suffix": "chroot-amd64",
+              })
               release_assets_matrix.append({
                   "this_pack_version": driver["this_pack_version"],
                   "package_name_prefix": "appstore.driver.gpu.nvidia.user",

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -euo pipefail
+
+kernel_ver="${1:?Kernel version is required}"
+source_dir="${2:?NVIDIA kernel source directory is required}"
+output_dir="${3:?Output directory is required}"
+work_base="${TRIM_PKGVAR:-/tmp}"
+chroot_source_dir="/tmp/nvidia-grid-kernel-source.$$"
+work_dir=""
+root_dir=""
+build_dir=""
+
+cleanup() {
+    local status=$?
+
+    trap - EXIT
+    set +e
+    if [[ -n "${root_dir}" ]]; then
+        umount -l "${root_dir}${chroot_source_dir}" 2>/dev/null
+        umount -l "${root_dir}/proc" 2>/dev/null
+        umount -l "${root_dir}/dev" 2>/dev/null
+        umount -l "${root_dir}" 2>/dev/null
+    fi
+    if [[ -n "${work_dir}" ]]; then
+        rm -rf -- "${work_dir}"
+    fi
+    exit "${status}"
+}
+trap cleanup EXIT
+
+if [[ ! -f "${source_dir}/Makefile" ]]; then
+    echo "NVIDIA kernel source Makefile not found: ${source_dir}/Makefile" >&2
+    exit 1
+fi
+
+mkdir -p "${work_base}"
+work_dir="$(mktemp -d "${work_base%/}/nvidia-grid-chroot.XXXXXX")"
+root_dir="${work_dir}/root"
+build_dir="${work_dir}/source"
+mkdir -p "${work_dir}/upper" "${work_dir}/work" "${root_dir}" "${build_dir}"
+cp -a "${source_dir}/." "${build_dir}/"
+
+mount -t overlay overlay \
+    -o "lowerdir=/,upperdir=${work_dir}/upper,workdir=${work_dir}/work" \
+    "${root_dir}"
+mkdir -p "${root_dir}${chroot_source_dir}"
+mount --bind "${build_dir}" "${root_dir}${chroot_source_dir}"
+mount --bind /dev "${root_dir}/dev"
+mount -t proc proc "${root_dir}/proc"
+
+rm -f "${root_dir}/etc/resolv.conf"
+cp -L /etc/resolv.conf "${root_dir}/etc/resolv.conf"
+
+echo "Building NVIDIA kernel modules for ${kernel_ver} inside chroot"
+chroot "${root_dir}" /bin/bash -s -- "${kernel_ver}" "${chroot_source_dir}" <<'CHROOT_BUILD'
+set -euo pipefail
+
+kernel_ver="$1"
+source_dir="$2"
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends build-essential bc
+make -C "${source_dir}" -j"$(nproc)" KERNEL_UNAME="${kernel_ver}"
+CHROOT_BUILD
+
+mkdir -p "${output_dir}"
+while IFS= read -r -d '' module_file; do
+    echo "Collecting ${module_file}"
+    cp -f -- "${module_file}" "${output_dir}/"
+done < <(find "${build_dir}" -name '*.ko' -type f -print0)
+if [[ ! -f "${output_dir}/nvidia.ko" ]]; then
+    echo "NVIDIA build did not produce ${output_dir}/nvidia.ko" >&2
+    exit 1
+fi
+
+echo "Stored the compiled NVIDIA kernel modules in ${output_dir}"

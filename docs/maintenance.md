@@ -18,6 +18,7 @@
 package_kernel_space/
   manifest
   cmd/
+    build_module_chroot
     common
     main
     uninstall_init
@@ -63,6 +64,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
@@ -71,16 +73,24 @@ appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk
+appstore.driver.gpu.nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
 appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 内核空间和用户空间复用 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
 
-内核空间包包含：
+预构建内核空间包包含：
 
 - NVIDIA 内核模块：`app/appstore.driver.gpu.nvidia.ko_<内核版本-build-架构>/`
 - NVIDIA firmware：`app/firmware/`
 - 内核空间驱动包元数据和生命周期脚本：`package_kernel_space/`
+
+`chroot-amd64` 内核空间包包含：
+
+- 已 patch 的 NVIDIA kernel source：`app/nvidia-kernel-source/kernel/`
+- NVIDIA firmware：`app/firmware/`
+- 相同的内核空间包元数据和生命周期脚本
+- 不包含任何预构建 `.ko`
 
 用户空间包包含：
 
@@ -182,6 +192,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 替换 `package_kernel_space/manifest`
 - 生成 `app.tgz`
 - 按内核版本分别打出 `.tgz` artifact，发布 Release 前由 `test_release.yml` 改名为 `.tgz.fpk`
+- 另由独立的 `pack_chroot` job 将相同源码和 firmware 打入 `chroot-amd64` 包；该 job 在打包前后都会检查 payload 中不存在 `.ko`
 
 ### `user_space.yml`
 
@@ -237,11 +248,12 @@ package_kernel_space/cmd/main
 `start` 执行顺序：
 
 1. 安装 firmware
-2. 安装 NVIDIA 内核模块
-3. 切换模块 alternatives
-4. 执行 `depmod`
-5. 写入 `/etc/modprobe.d/blacklist-nouveau.conf` 禁用 nouveau
-6. 执行 `update-initramfs -u`
+2. 检查既有命名目录中是否存在预构建 `nvidia.ko`；不存在时仅在包内有源码的情况下执行 chroot 构建
+3. 安装 NVIDIA 内核模块
+4. 切换模块 alternatives
+5. 执行 `depmod`
+6. 写入 `/etc/modprobe.d/blacklist-nouveau.conf` 禁用 nouveau
+7. 执行 `update-initramfs -u`
 
 ### Firmware 安装
 
@@ -278,7 +290,7 @@ ${TRIM_APPDEST}/app/firmware/
 其他内核版本                           -> <uname -r>-<arch>
 ```
 
-`6.18.18-trim` 是历史同名多 build 规则，需要特殊分组以兼容旧包。其他内核版本直接按 `uname -r` 拼出包内模块目录和 Release 资产名；如果包内没有对应目录，`install_modules` 会报 `NVIDIA kernel module directory not found` 并退出。后续新增内核时只需要新增对应构建镜像和 release 资产目标，运行时选择逻辑不需要为每个内核名继续加分支。
+`6.18.18-trim` 是历史同名多 build 规则，需要特殊分组以兼容旧包。其他内核版本直接按 `uname -r` 拼出包内模块目录和 Release 资产名。运行时先检查该目录中的 `nvidia.ko`；不存在时再检查包内源码。没有源码时不会改变原流程，`install_modules` 最终仍会报 `NVIDIA kernel module directory not found` 并退出。
 
 模块包目录格式：
 
@@ -291,6 +303,26 @@ ${TRIM_APPDEST}/app/appstore.driver.gpu.nvidia.ko_<内核版本-build-架构>/
 ```text
 ${TRIM_APPDEST}/app/appstore.driver.gpu.nvidia.ko_6.18.18-trim-587-amd64/
 ```
+
+### chroot 源码构建
+
+源码包将已 patch 的 NVIDIA kernel source 放在：
+
+```text
+${TRIM_APPDEST}/app/nvidia-kernel-source/kernel/
+```
+
+`prepare_module_payload` 仅在 `source_module_dir` 中没有 `nvidia.ko` 且上述源码存在时调用独立脚本 `cmd/build_module_chroot`。该脚本复制一份源码作为工作树，使用 `/` 作为只读 lower layer 创建临时 overlay/chroot，在隔离环境中通过 `apt-get` 安装 `build-essential` 和 `bc`，然后为当前 `uname -r` 执行 NVIDIA kernel module 构建。
+
+构建出的全部 `.ko` 会先写入既有 `source_module_dir` 命名目录，再由 `install_modules` 完成版本检查、复制、alternatives、`depmod` 和 initramfs 更新。chroot 脚本不 source `common`，也不直接执行安装逻辑。
+
+构建启动前创建普通文件：
+
+```text
+/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed
+```
+
+只有确认生成版本匹配的 `nvidia.ko` 后才删除该文件。构建失败、中断、成功但缺少产物或模块版本异常时会清理部分产物并保留锁，后续启动直接向 `TRIM_TEMP_LOGFILE` 返回可见错误，不再自动重试。自然重启清空 `/tmp`、手动删除锁、执行 `upgrade_init` 或 `uninstall_init` 后可以再次构建。chroot 命令输出同时写控制台、应用 `info.log` 和 `TRIM_TEMP_LOGFILE`；最终错误也会追加到用户可见日志。
 
 ### 模块安装位置
 
@@ -356,6 +388,8 @@ EXPECTED_DRIVER_VERSION="580.159.03"
 
 - `package_kernel_space/cmd/uninstall_init`
 - `package_kernel_space/cmd/upgrade_init`
+
+两个流程都会先删除 chroot 构建失败锁，再执行原有 alternatives 恢复与模块清理。
 
 这两个脚本只在当前 alternatives 仍由本项目接管时恢复默认 proprietary 模块：
 
