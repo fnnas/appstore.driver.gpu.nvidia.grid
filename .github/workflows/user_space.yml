@@ -88,10 +88,10 @@ jobs:
 
       - name: Create user-space package archive
         run: |
-          tar zcvf appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz package_user_space
+          tar zcvf nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz package_user_space
 
       - name: Upload user-space package artifact
         uses: actions/upload-artifact@v7
         with:
-          name: appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz
-          path: appstore.driver.gpu.nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz
+          name: nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz
+          path: nvidia.user-${{ inputs.this_pack_version }}-${{ inputs.manifest_platform }}.tgz

@@ -39,7 +39,7 @@ package_user_space/
 ## CONVENTIONS
 
 - `EXPECTED_DRIVER_VERSION`、`NVIDIA_RUN_FILE` 和 `ENABLE_NVLTS` 都是 CI 占位符。
-- `user_space.yml` 上传 `.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`。
+- `user_space.yml` 上传 `nvidia.user-<version>-x86.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`；FNOS manifest `appname` 仍使用 `appstore.driver.gpu.nvidia.user`。
 - 启用 NVLTS 时 artifact 必须包含 `nvlts` 二进制和 `configs` 目录；当前仅 `580.159.03-3` 启用。
 - `write_gridd_conf` 使用 heredoc 覆盖 `/etc/nvidia/gridd.conf`，保留 NVIDIA 模板注释。
 - 卸载失败通过 `report_error` 写日志并返回非零；清理后会 `systemctl daemon-reload`。

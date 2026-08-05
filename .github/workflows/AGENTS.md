@@ -13,7 +13,7 @@
 | 准备 NVLTS | `nvlts.yml` | 未指定版本时从 GitLab API 解析最新 release。 |
 | 编译内核模块 | `kernel_space.yml` | matrix 使用 FNOS 内核头文件容器。 |
 | 打包用户空间包 | `user_space.yml` | 恢复 `.run` 和 `nvlts` artifact 后生成用户空间 `.tgz`。 |
-| 静态检查 | `static_checks.yml` | 文档 UTF-8、版本一致性、Python 语法、shell 语法。 |
+| 静态检查 | `static_checks.yml` | 文档 UTF-8、版本一致性、产物命名、Python 语法、shell 语法。 |
 
 ## ARTIFACT FLOW
 
@@ -31,9 +31,9 @@ test_release.yml
 ├── nvlts.yml
 │   └── nvlts-580.159.03       -> user_space.yml for 580 only
 ├── kernel_space.yml
-│   ├── appstore.driver.gpu.nvidia.ko-<version>-<kernel>.tgz
-│   └── appstore.driver.gpu.nvidia.ko-<version>-chroot-amd64.tgz
-└── user_space.yml              -> appstore.driver.gpu.nvidia.user-<version>-x86.tgz
+│   ├── nvidia.ko-<version>-<kernel>.tgz
+│   └── nvidia.ko-<version>-chroot-amd64.tgz
+└── user_space.yml              -> nvidia.user-<version>-x86.tgz
 ```
 
 ## CONVENTIONS
@@ -49,6 +49,7 @@ test_release.yml
 - `plan_build` 的 kernels 列表必须覆盖 `kernel_space.yml` 的全部内核 matrix。
 - `manifest_platform` 当前为应用中心 `x86`，内核构建架构当前为 `amd64`。
 - `kernel_space.yml` 的 `pack_chroot` 每个驱动版本只运行一次，源码包必须同时在解包后和打包前确认不存在 `.ko`。
+- 最终驱动 artifact 使用 `nvidia.ko-...` 和 `nvidia.user-...` 文件名；FNOS manifest `appname` 与内核包内模块目录仍使用 `appstore.driver.gpu.nvidia.*` 标识。
 
 ## ANTI-PATTERNS
 

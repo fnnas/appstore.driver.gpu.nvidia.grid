@@ -90,6 +90,65 @@ jobs:
           raise SystemExit(1 if failed else 0)
           PY
 
+      - name: Check artifact naming contract
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          expression_open = "$" + "{{"
+          contracts = {
+              Path(".github/workflows/kernel_space.yml"): {
+                  "nvidia.ko-" + expression_open + " inputs.this_pack_version }}-" + expression_open + " env.kernel_name }}.tgz": 3,
+                  "nvidia.ko-" + expression_open + " inputs.this_pack_version }}-chroot-amd64.tgz": 3,
+              },
+              Path(".github/workflows/user_space.yml"): {
+                  "nvidia.user-" + expression_open + " inputs.this_pack_version }}-" + expression_open + " inputs.manifest_platform }}.tgz": 3,
+              },
+          }
+          failed = False
+          for path, expected_names in contracts.items():
+              text = path.read_text(encoding="utf-8")
+              for name, expected_count in expected_names.items():
+                  actual_count = text.count(name)
+                  if actual_count != expected_count:
+                      print(f"{path}: expected {expected_count} occurrences of {name}, found {actual_count}")
+                      failed = True
+
+          release_workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
+          prefixes = re.findall(
+              r'^\s+"package_name_prefix": "([^"]+)",$',
+              release_workflow,
+              flags=re.M,
+          )
+          if sorted(prefixes) != ["nvidia.ko", "nvidia.ko", "nvidia.user"]:
+              print(f"Unexpected release asset prefixes: {prefixes}")
+              failed = True
+          title_arg = '--title "' + expression_open + ' steps.vars.outputs.release_title }}"'
+          if release_workflow.count(title_arg) != 2:
+              print("Release create/edit must use the timestamp title without a repository-name prefix")
+              failed = True
+
+          legacy_filename = re.compile(
+              r'appstore[.]driver[.]gpu[.]nvidia[.](?:user-|ko-(?!chroot-build[.]failed))'
+          )
+          checked_paths = [
+              Path(".github/workflows/kernel_space.yml"),
+              Path(".github/workflows/user_space.yml"),
+              Path(".github/workflows/AGENTS.md"),
+              Path("readme.md"),
+              Path("docs/usage.md"),
+              Path("docs/maintenance.md"),
+              Path("CLAUDE.md"),
+          ]
+          for path in checked_paths:
+              if legacy_filename.search(path.read_text(encoding="utf-8")):
+                  print(f"{path}: legacy artifact filename prefix found")
+                  failed = True
+
+          raise SystemExit(1 if failed else 0)
+          PY
+
       - name: Check Python syntax
         run: |
           python3 -m py_compile scripts/patch-nvidia-grid-kernel-binary.py

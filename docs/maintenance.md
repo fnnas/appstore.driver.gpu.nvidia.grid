@@ -48,7 +48,7 @@ docs/
 | GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
 | GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
 
-- 当前已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`
+- 当前已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`
 - 当前构建架构：`amd64`
 - 应用中心 `platform`：`x86`
 
@@ -57,24 +57,26 @@ docs/
 GitHub Actions 会生成以下最终包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c952-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c952-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 内核空间和用户空间复用 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
@@ -116,7 +118,7 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 开启 `make_release=true` 时，`test_release.yml` 会按北京时间生成 release 名称，例如：
 
 ```text
-title: fnnas.appstore.driver.gpu.nvidia.grid 2026.05.26 20:03:42
+title: 2026.05.26 20:03:42
 tag: 2026.05.26-20-03-42
 ```
 
@@ -181,6 +183,7 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - `6.18.18.c788-trim-amd64`
 - `6.18.18.c877-trim-amd64`
 - `6.18.18.c938-trim-amd64`
+- `6.18.18.c952-trim-amd64`
 
 执行流程：
 
@@ -206,25 +209,25 @@ firmware 作为目录 artifact 直接恢复到最终包，不再单独压缩成 
 - 打出用户空间驱动包 artifact：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz
+nvidia.user-580.159.03-3-x86.tgz
 ```
 
 `535.309.01` 对应 artifact 为：
 
 ```text
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz
+nvidia.user-535.309.01-1-x86.tgz
 ```
 
 发布 Release 前，`test_release.yml` 会将该 artifact 改名为：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 `535.309.01` 对应为：
 
 ```text
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### `static_checks.yml`
@@ -565,17 +568,18 @@ ${TRIM_TEMP_LOGFILE}
    - 确认 release 上传流程仍先下载 `.tgz` artifact，再改名并上传 `.tgz.fpk`
    - 同步维护矩阵中的 `manifest_platform`
 
-5. 如调整包名
-   - `test_release.yml` 的 `proj_name` 和 `kernel_module_package_name`
-   - `kernel_space.yml` 的 `kernel_module_package_name`
-   - `package_kernel_space/cmd/common` 中的 `PROJ_NAME`
-   - README 和用户文档中的下载包名
+5. 如调整产物文件名
+   - `kernel_space.yml` 和 `user_space.yml` 中创建、上传 artifact 的文件名
+   - `test_release.yml` 的 `package_name_prefix` 和 Release 下载、改名、上传流程
+   - README 和用户文档中的下载文件名
+   - 不要仅因产物文件名变化而修改 manifest `appname`、`kernel_module_package_name` 或 `PROJ_NAME`
 
 ## 维护注意事项
 
-- `appstore.driver.gpu.nvidia.grid` 是仓库和 release 名称。
+- `appstore.driver.gpu.nvidia.grid` 是仓库名称；release title 只使用北京时间发布时间。
 - `appstore.driver.gpu.nvidia.ko` 仍用于内核空间应用包名和内核模块目录前缀。
 - `appstore.driver.gpu.nvidia.user` 用于用户空间应用包名。
+- 最终产物文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头。
 - 内核空间和用户空间驱动版本必须一致。
 - release tag 使用发布时间，不使用 NVIDIA 驱动版本或应用包版本；同一个 release 可以包含当前矩阵中的多个 NVIDIA 驱动版本。
 - 宿主机 vGPU KVM 驱动和客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 版本组合。

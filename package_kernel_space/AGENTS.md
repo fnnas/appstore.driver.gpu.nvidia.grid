@@ -37,7 +37,7 @@ package_kernel_space/
 - build `570 <= x < 587` 使用 `6.18.18-trim-570-<arch>`。
 - build `587 <= x < 717` 使用 `6.18.18-trim-587-<arch>`。
 - build `>= 717` 使用 `6.18.18-trim-717-<arch>`。
-- 例如 `6.18.18.c788-trim` 使用 `6.18.18.c788-trim-<arch>`，`6.18.18.c877-trim` 使用 `6.18.18.c877-trim-<arch>`，`6.18.18.c938-trim` 使用 `6.18.18.c938-trim-<arch>`。
+- 例如 `6.18.18.c788-trim` 使用 `6.18.18.c788-trim-<arch>`，`6.18.18.c877-trim` 使用 `6.18.18.c877-trim-<arch>`，`6.18.18.c938-trim` 使用 `6.18.18.c938-trim-<arch>`，`6.18.18.c952-trim` 使用 `6.18.18.c952-trim-<arch>`。
 - `nvidia.ko` 中读到的 module version 必须等于 `EXPECTED_DRIVER_VERSION`。
 - 包内源码固定为 `app/nvidia-kernel-source/kernel`；没有预构建模块且没有源码时继续进入既有安装检查并失败。
 - chroot 失败锁为 `/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed`，失败或中断时保留，成功、更新和卸载时清除。
@@ -46,7 +46,7 @@ package_kernel_space/
 
 - `EXPECTED_DRIVER_VERSION="this_pack_nvidia_driver_version"` 是 CI 占位符。
 - `PROJ_NAME="appstore.driver.gpu.nvidia.ko"` 参与包内模块目录命名。
-- `kernel_space.yml` 上传 `.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`。
+- `kernel_space.yml` 上传 `nvidia.ko-<version>-<target>.tgz` artifact，`test_release.yml` 发布 Release 前改名为 `.tgz.fpk`；FNOS `appname` 和包内模块目录前缀仍使用 `appstore.driver.gpu.nvidia.ko`。
 - 所有错误既写 `LOG_FILE`，也在 `TRIM_TEMP_LOGFILE` 存在时写给 FNOS UI。
 - chroot 构建输出通过 `run_with_user_visible_log` 同时写控制台、`LOG_FILE` 和 FNOS UI 日志。
 - `status` 成功返回 `0`，未就绪返回 `3`。

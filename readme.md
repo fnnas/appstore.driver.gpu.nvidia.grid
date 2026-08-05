@@ -7,6 +7,8 @@
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
 
+Release 下载文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头；上述 `appstore.driver.gpu.*` 名称是安装后使用的 FNOS 应用标识。
+
 ## 当前支持版本
 
 | vGPU 分支 | 宿主机 vGPU KVM 驱动 | 客户机 GRID 驱动 | 应用包版本 |
@@ -14,7 +16,7 @@
 | GRID 19.5 | `580.159.01` | `580.159.03` | `580.159.03-3` |
 | GRID 16.14 | `535.309.01` | `535.309.01` | `535.309.01-1` |
 
-- 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`
+- 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`
 - chroot 源码包：每个驱动版本额外提供一个 `chroot-amd64` 包，用于本机编译当前内核模块
 - 支持架构：`x86`
 
@@ -28,26 +30,27 @@
 每次安装至少需要下载两个包：
 
 1. 一个内核空间驱动包。优先根据 FNOS 内核版本选择预构建包；没有匹配的预构建包时可选择同驱动版本的 `chroot-amd64` 源码包。
-2. 一个同版本用户空间驱动包，例如 `appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk`。
+2. 一个同版本用户空间驱动包，例如 `nvidia.user-580.159.03-3-x86.tgz.fpk`。
 
-内核驱动包选择规则：先确认 `uname -r`。旧 `6.18.18-trim` 因为同一内核名下存在多组 build，需要再按 build number 选择 `427`、`570`、`587` 或 `717` 包。其他带构建号的完整内核名直接按 `uname -r` 选择，例如 `6.18.18.c938-trim` 选择 `6.18.18.c938-trim-amd64` 包。没有对应预构建包时，可改用 `chroot-amd64` 源码包。
+内核驱动包选择规则：先确认 `uname -r`。旧 `6.18.18-trim` 因为同一内核名下存在多组 build，需要再按 build number 选择 `427`、`570`、`587` 或 `717` 包。其他带构建号的完整内核名直接按 `uname -r` 选择，例如 `6.18.18.c952-trim` 选择 `6.18.18.c952-trim-amd64` 包。没有对应预构建包时，可改用 `chroot-amd64` 源码包。
 
 当前已构建内核包选择规则：
 
 | 当前内核版本         | 当前内核 build number | 应选择的内核驱动包                                                               |
 |----------------|-------------------|-------------------------------------------------------------------------|
-| `6.18.18-trim` | `#427` 到 `#569`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
-| `6.18.18-trim` | `#570` 到 `#586`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
-| `6.18.18-trim` | `#587` 到 `#716`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
-| `6.18.18-trim` | `#717` 到 `#787`   | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
-| `6.18.18.c788-trim` | `#788`        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
-| `6.18.18.c877-trim` | `#877`        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk` |
-| `6.18.18.c938-trim` | `#938`        | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#427` 到 `#569`   | `nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#570` 到 `#586`   | `nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#587` 到 `#716`   | `nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
+| `6.18.18-trim` | `#717` 到 `#787`   | `nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
+| `6.18.18.c788-trim` | `#788`        | `nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
+| `6.18.18.c877-trim` | `#877`        | `nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk` |
+| `6.18.18.c938-trim` | `#938`        | `nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `6.18.18.c952-trim` | `#952`        | `nvidia.ko-580.159.03-3-6.18.18.c952-trim-amd64.tgz.fpk` |
 
 源码兜底包不包含任何预构建 `.ko`，安装时会在隔离的 chroot 中联网安装最小编译依赖，并把针对当前内核构建的模块写入既有模块目录后继续原安装流程：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
 ```
 
 应优先使用匹配的预构建包。chroot 编译要求系统有可用的当前内核头文件、网络连接和足够磁盘空间，耗时也明显更长。
@@ -55,12 +58,13 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
 如果使用 GRID 16.14 / `535.309.01` 版本，包名中的应用包版本需要同步换成 `535.309.01-1`，例如：
 
 ```text
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18.c952-trim-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 安装前在 FNOS 控制台或 SSH 中执行：

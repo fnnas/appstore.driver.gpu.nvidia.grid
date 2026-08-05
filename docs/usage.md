@@ -101,46 +101,49 @@ Linux fnos 6.18.18-trim #473 SMP PREEMPT_DYNAMIC Thu Apr 9 09:34:02 UTC 2026 x86
 Linux hp14q-fnos 6.18.18.c788-trim #788 SMP PREEMPT_DYNAMIC Fri Jun 12 01:42:14 UTC 2026 x86_64
 Linux GreenDamTan 6.18.18.c877-trim #877 SMP PREEMPT_DYNAMIC Fri Jul  3 01:41:33 UTC 2026 x86_64
 Linux GreenDamTan 6.18.18.c938-trim #938 SMP PREEMPT_DYNAMIC Thu Jul 16 04:29:13 UTC 2026 x86_64
+Linux MEPro-9D5D 6.18.18.c952-trim #952 SMP PREEMPT_DYNAMIC Tue Jul 21 07:39:35 UTC 2026 x86_64
 ```
 
 ![查看 FNOS 内核版本](usage/5_check_fnos_kernel_version.png)
 
 需要关注两部分：
 
-- 内核版本：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim` 或 `6.18.18.c938-trim`
+- 内核版本：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim` 或 `6.18.18.c952-trim`
 - build number：`#473`。只有旧 `6.18.18-trim` 需要用它选择分组包。
 
-旧 `6.18.18-trim` 因为同一内核名下有多组 build，需要按 build number 选择 `427`、`570`、`587` 或 `717` 包。`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim` 这类带构建号的完整内核名直接按 `uname -r` 选择对应包，例如 `6.18.18.c938-trim-amd64`。后续如果系统显示其他完整内核名，应优先下载与 `uname -r` 对应的预构建包；没有对应预构建包时可以使用 `chroot-amd64` 源码包。
+旧 `6.18.18-trim` 因为同一内核名下有多组 build，需要按 build number 选择 `427`、`570`、`587` 或 `717` 包。`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim` 这类带构建号的完整内核名直接按 `uname -r` 选择对应包，例如 `6.18.18.c952-trim-amd64`。后续如果系统显示其他完整内核名，应优先下载与 `uname -r` 对应的预构建包；没有对应预构建包时可以使用 `chroot-amd64` 源码包。
 
 本项目目前提供以下内核驱动包：
 
 | 当前内核 / build | 应选择的内核驱动包 |
 | --- | --- |
-| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
-| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
-| `#587` 到 `#716` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
-| `#717` 到 `#787` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
-| `#788` 且内核为 `6.18.18.c788-trim` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
-| `#877` 且内核为 `6.18.18.c877-trim` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk` |
-| `#938` 且内核为 `6.18.18.c938-trim` | `appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `#427` 到 `#569` | `nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk` |
+| `#570` 到 `#586` | `nvidia.ko-580.159.03-3-6.18.18-trim-570-amd64.tgz.fpk` |
+| `#587` 到 `#716` | `nvidia.ko-580.159.03-3-6.18.18-trim-587-amd64.tgz.fpk` |
+| `#717` 到 `#787` | `nvidia.ko-580.159.03-3-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#788` 且内核为 `6.18.18.c788-trim` | `nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk` |
+| `#877` 且内核为 `6.18.18.c877-trim` | `nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk` |
+| `#938` 且内核为 `6.18.18.c938-trim` | `nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `#952` 且内核为 `6.18.18.c952-trim` | `nvidia.ko-580.159.03-3-6.18.18.c952-trim-amd64.tgz.fpk` |
 
 如果选择 `535.309.01`，内核包选择规则同上，只把包名中的应用包版本替换为 `535.309.01-1`：
 
 | 当前内核 / build | 应选择的 535 内核驱动包 |
 | --- | --- |
-| `#427` 到 `#569` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk` |
-| `#570` 到 `#586` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk` |
-| `#587` 到 `#716` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk` |
-| `#717` 到 `#787` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk` |
-| `#788` 且内核为 `6.18.18.c788-trim` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk` |
-| `#877` 且内核为 `6.18.18.c877-trim` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk` |
-| `#938` 且内核为 `6.18.18.c938-trim` | `appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `#427` 到 `#569` | `nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk` |
+| `#570` 到 `#586` | `nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk` |
+| `#587` 到 `#716` | `nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk` |
+| `#717` 到 `#787` | `nvidia.ko-535.309.01-1-6.18.18-trim-717-amd64.tgz.fpk` |
+| `#788` 且内核为 `6.18.18.c788-trim` | `nvidia.ko-535.309.01-1-6.18.18.c788-trim-amd64.tgz.fpk` |
+| `#877` 且内核为 `6.18.18.c877-trim` | `nvidia.ko-535.309.01-1-6.18.18.c877-trim-amd64.tgz.fpk` |
+| `#938` 且内核为 `6.18.18.c938-trim` | `nvidia.ko-535.309.01-1-6.18.18.c938-trim-amd64.tgz.fpk` |
+| `#952` 且内核为 `6.18.18.c952-trim` | `nvidia.ko-535.309.01-1-6.18.18.c952-trim-amd64.tgz.fpk` |
 
 每个驱动版本还会发布一个只包含 NVIDIA kernel source 和 firmware、不包含预构建 `.ko` 的源码包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
+nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
 ```
 
 源码包安装时会在 overlay/chroot 中针对当前 `uname -r` 编译模块，因此需要联网访问系统软件源、可用的当前内核头文件和至少 2 GiB 根文件系统可用空间。匹配的预构建包安装更快、变量更少，应当优先使用。
@@ -150,37 +153,43 @@ appstore.driver.gpu.nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
 例如截图中的系统是 `6.18.18-trim #473`，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 如果系统是 `6.18.18.c788-trim #788`，应选择 `6.18.18.c788-trim-amd64` 包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c788-trim-amd64.tgz.fpk
 ```
 
 如果系统是 `6.18.18.c877-trim #877`，应选择 `6.18.18.c877-trim-amd64` 包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c877-trim-amd64.tgz.fpk
 ```
 
 如果系统是 `6.18.18.c938-trim #938`，应选择 `6.18.18.c938-trim-amd64` 包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18.c938-trim-amd64.tgz.fpk
+```
+
+如果系统是 `6.18.18.c952-trim #952`，应选择 `6.18.18.c952-trim-amd64` 包：
+
+```text
+nvidia.ko-580.159.03-3-6.18.18.c952-trim-amd64.tgz.fpk
 ```
 
 用户空间驱动包固定下载：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 如果选择 `535.309.01`，用户空间驱动包固定下载：
 
 ```text
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### 2.2 为什么不直接使用官方应用中心驱动
@@ -230,20 +239,20 @@ https://github.com/fnnas/appstore.driver.gpu.nvidia.grid/releases
 你需要下载两个包：
 
 1. 一个内核驱动包。优先根据 `uname -r` 选择预构建包；旧 `6.18.18-trim` 再根据 `uname -a` 的 build number 选择分组包。没有匹配预构建包时选择 `chroot-amd64` 源码包。
-2. 一个同版本用户空间驱动包，例如 `appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk`。
+2. 一个同版本用户空间驱动包，例如 `nvidia.user-580.159.03-3-x86.tgz.fpk`。
 
 以 `#473` 内核为例，应下载：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 GRID 16.14 / `535.309.01` 的同版本示例是：
 
 ```text
-appstore.driver.gpu.nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 ### 3.2 使用 FNOS 下载工具下载
@@ -261,19 +270,19 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 确认你下载到的文件名应类似：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 用户空间驱动包同样应是 `.tgz.fpk`：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 选择 535 版本时对应为：
 
 ```text
-appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
+nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
 #### 我下载的是tgz而不是fpk?
@@ -281,8 +290,8 @@ appstore.driver.gpu.nvidia.user-535.309.01-1-x86.tgz.fpk
 如果你下载的是 GitHub Actions artifact 或历史发布中的 `.tgz` 文件，才需要手动把扩展名改为 `.tgz.fpk`。
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![修改扩展名](usage/9_rename_package.png)
@@ -294,7 +303,7 @@ appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 打开 FNOS 应用中心或本地安装入口，选择下载到的 `.tgz.fpk` 内核驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
+nvidia.ko-580.159.03-3-6.18.18-trim-427-amd64.tgz.fpk
 ```
 
 ![安装内核驱动包](usage/10_install_package.png)
@@ -372,7 +381,7 @@ NVIDIA UNIX x86_64 Kernel Module  580.159.03
 确认内核驱动已经正常加载后，再安装用户空间驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.user-580.159.03-3-x86.tgz.fpk
+nvidia.user-580.159.03-3-x86.tgz.fpk
 ```
 
 ![安装用户空间驱动](usage/14_install_user.png)
@@ -519,13 +528,13 @@ sudo systemctl restart resmon_service.service
 必须先安装内核驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.ko-...
+nvidia.ko-...
 ```
 
 安装完成并重启，确认内核驱动正常后，再安装用户空间驱动包：
 
 ```text
-appstore.driver.gpu.nvidia.user-...
+nvidia.user-...
 ```
 
 ### 9.2 内核驱动包选错会怎样？

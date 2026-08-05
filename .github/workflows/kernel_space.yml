@@ -65,6 +65,10 @@ jobs:
             kernel_ver: "6.18.18.c938-trim"
             container_image: "makedie/fnos:kernHead-6.18.18.c938-trim-amd64"
             manifest_platform: "x86"
+          - kernel_name: "6.18.18.c952-trim-amd64"
+            kernel_ver: "6.18.18.c952-trim"
+            container_image: "makedie/fnos:kernHead-6.18.18.c952-trim-amd64"
+            manifest_platform: "x86"
     container:
       image: ${{ matrix.container_image }}
       options: -v ${{ github.workspace }}:${{ github.workspace }}
@@ -203,13 +207,13 @@ jobs:
 
       - name: Create kernel-space package archive
         run: |
-          tar zcvf appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz package_kernel_space
+          tar zcvf nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz package_kernel_space
 
       - name: Upload kernel-space package artifact
         uses: actions/upload-artifact@v7
         with:
-          name: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
-          path: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
+          name: nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
+          path: nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
 
   pack_chroot:
     runs-on: ubuntu-latest
@@ -268,10 +272,10 @@ jobs:
 
       - name: Create chroot kernel-space package archive
         run: |
-          tar zcvf appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz package_kernel_space
+          tar zcvf nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz package_kernel_space
 
       - name: Upload chroot kernel-space package artifact
         uses: actions/upload-artifact@v7
         with:
-          name: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz
-          path: appstore.driver.gpu.nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz
+          name: nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz
+          path: nvidia.ko-${{ inputs.this_pack_version }}-chroot-amd64.tgz
