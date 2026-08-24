@@ -36,3 +36,6 @@ __pycache__/
 /tmp
 
 /docs/fnnas-docs
+
+.agents
+/skills-lock.json
