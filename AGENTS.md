@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-本仓库构建面向 FNOS / 飞牛 NAS vGPU 场景的 NVIDIA GRID 驱动应用包。内核空间与用户空间包的 FNOS 应用标识分别为 `appstore.driver.gpu.nvidia.ko` 和 `appstore.driver.gpu.nvidia.user`，两者驱动版本必须一致。
+本仓库构建面向 FNOS / 飞牛 NAS vGPU 场景的 NVIDIA GRID 驱动应用包。内核空间与用户空间包的 FNOS 应用标识分别为 `appstore.driver.gpu.nvidia.ko` 和 `appstore.driver.gpu.nvidia.user`，两者驱动版本必须一致；580 版本另提供应用标识为 `Nvidia-Driver-580` 的第三方占位空包。
 
 ## STRUCTURE
 
@@ -13,6 +13,7 @@
 ├── .github/workflows/      # GitHub Actions 构建、打包、发布和静态检查入口
 ├── package_kernel_space/   # FNOS 内核空间应用包模板和生命周期脚本
 ├── package_user_space/     # FNOS 用户空间应用包模板、NVLTS 和 gridd 配置脚本
+├── package_fake_offical_580/ # Nvidia-Driver-580 占位空包模板
 ├── scripts/                # NVIDIA GRID kernel binary patch 脚本
 ├── docs/                   # 用户安装教程和维护文档
 └── app/                    # CI 打包暂存目录，只提交 .gitkeep
@@ -26,6 +27,7 @@
 | 修改内核模块构建目标 | `.github/workflows/kernel_space.yml`、`.github/workflows/test_release.yml`、`package_kernel_space/cmd/main` | matrix 和 release 上传 matrix 必须同步；运行时默认按 `uname -r` 匹配目录，只有旧 `6.18.18-trim` 新增 build 分组时才需要改运行时逻辑。 |
 | 修改本机 chroot 构建 | `package_kernel_space/cmd/build_module_chroot`、`package_kernel_space/cmd/main`、`.github/workflows/kernel_space.yml` | `chroot-amd64` 包只携带源码和 firmware；编译产物必须先写入既有 `source_module_dir`。 |
 | 修改用户空间打包流程 | `.github/workflows/user_space.yml`、`package_user_space/cmd/common` | `.run` 文件名由 `this_pack_grid_run` 渲染。 |
+| 修改 580 占位空包 | `.github/workflows/fake_official_580.yml`、`.github/workflows/test_release.yml`、`package_fake_offical_580/` | 仅在选择 580 时构建并加入 release asset matrix。 |
 | 修改 FNOS 内核空间安装行为 | `package_kernel_space/cmd/main`、`package_kernel_space/cmd/common` | 涉及 firmware、alternatives、`depmod`、nouveau blacklist、initramfs。 |
 | 修改 FNOS 用户空间安装行为 | `package_user_space/cmd/main`、`package_user_space/cmd/common`、`package_user_space/cmd/write_gridd_conf` | 先校验内核驱动版本，再安装用户空间驱动；NVLTS 仅 580 包启用。 |
 | 修改 NVIDIA binary patch 规则 | `scripts/patch-nvidia-grid-kernel-binary.py` | pattern 未命中只 warning，不阻塞 CI。 |
@@ -38,6 +40,7 @@
 - 已构建内核包：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`、`6.18.18.c1032-trim`；旧 `6.18.18-trim` 按 build 分组，其他内核名直接按 `uname -r` 匹配对应包内模块目录。
 - 当前内核包分组：`427`、`570`、`587`、`717`、`c788`、`c877`、`c938`、`c952`、`c1032`。
 - 每个驱动版本另有一个 `chroot-amd64` 源码包，不含预构建 `.ko`，用于本机编译当前内核模块。
+- 选择 580 版本时另行构建固定文件名 `Nvidia-Driver-580.tgz[.fpk]` 的占位空包；它与驱动版本无关，不包含驱动内容。
 
 同一 NVIDIA 驱动版本下只发包修订时，只递增应用包版本后缀，例如 `-2` 到 `-3`。升级 NVIDIA 驱动时才同步改变前面的驱动版本号。
 
@@ -48,7 +51,7 @@
 - manifest 占位符名称必须和 workflow 中 `sed` 替换逻辑保持一致。
 - `app/app` 和 `app/ui` 是 CI 打包暂存目录；源码中只保留 `.gitkeep`。
 - GitHub Actions 中间 artifact 使用 `.tgz`，GitHub Release 上传前必须改名为 `.tgz.fpk`。
-- 最终产物文件名使用 `nvidia.ko-<version>-<target>.tgz[.fpk]` 和 `nvidia.user-<version>-x86.tgz[.fpk]`；manifest `appname`、包内目录前缀和生命周期脚本标识仍保留 `appstore.driver.gpu.*`。
+- 最终产物文件名使用 `nvidia.ko-<version>-<target>.tgz[.fpk]`、`nvidia.user-<version>-x86.tgz[.fpk]` 和固定的 `Nvidia-Driver-580.tgz[.fpk]`；各 manifest `appname` 保持自身应用标识。
 - chroot 构建失败锁固定为 `/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed`；成功、更新或卸载时清除，失败或中断时保留。
 - 本仓库没有 package manager 配置，也没有常规本地测试框架；以 `.github/workflows/static_checks.yml` 为静态检查权威来源。
 - shell 生命周期脚本没有 `.sh` 后缀；按 shebang 和 `bash -n` 识别，不要只搜索 `*.sh`。
@@ -76,6 +79,7 @@ python3 -m py_compile scripts/patch-nvidia-grid-kernel-binary.py
 bash -n package_kernel_space/cmd/main
 bash -n package_user_space/cmd/main
 bash -n package_user_space/cmd/write_gridd_conf
+bash -n package_fake_offical_580/cmd/main
 ```
 
 Windows/Git Bash 环境中，如果 `python3` 不存在可改用 `python`；如果 `find` 被解析成 Windows `FIND.EXE`，使用 `/usr/bin/find`。

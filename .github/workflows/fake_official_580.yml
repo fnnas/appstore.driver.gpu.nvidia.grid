@@ -1,0 +1,70 @@
+name: Fake Official NVIDIA 580 Package
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  workflow_call:
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Validate empty package manifest
+        run: |
+          set -euo pipefail
+          grep -Fx 'version="1.0.0"' package_fake_offical_580/manifest
+          grep -Fx 'appname="Nvidia-Driver-580"' package_fake_offical_580/manifest
+          grep -Fx 'platform="x86"' package_fake_offical_580/manifest
+          if grep -R -n 'this_pack_' package_fake_offical_580; then
+            echo "Unexpected package placeholder found."
+            exit 1
+          fi
+
+      - name: Create empty app payload archive
+        run: |
+          set -euo pipefail
+          tar --exclude='.gitkeep' -zcvf package_fake_offical_580/app.tgz -C package_fake_offical_580 app
+
+      - name: Create empty package archive
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='package_fake_offical_580/app' \
+            --exclude='.gitkeep' \
+            -zcvf Nvidia-Driver-580.tgz \
+            package_fake_offical_580
+
+      - name: Verify empty package archive
+        run: |
+          set -euo pipefail
+          package_archive="Nvidia-Driver-580.tgz"
+          test -f "$package_archive"
+
+          archive_listing="$(tar tzf "$package_archive")"
+          grep -Fx 'package_fake_offical_580/manifest' <<< "$archive_listing"
+          grep -Fx 'package_fake_offical_580/app.tgz' <<< "$archive_listing"
+          grep -Fx 'package_fake_offical_580/cmd/main' <<< "$archive_listing"
+          grep -Fx 'package_fake_offical_580/config/privilege' <<< "$archive_listing"
+          if grep -Eq '^package_fake_offical_580/app/' <<< "$archive_listing"; then
+            echo "Raw app source directory must not be present in the package archive."
+            exit 1
+          fi
+          if grep -Fq '.gitkeep' <<< "$archive_listing"; then
+            echo ".gitkeep must not be present in the package archive."
+            exit 1
+          fi
+
+          extract_dir="$(mktemp -d)"
+          tar zxf "$package_archive" -C "$extract_dir"
+          tar tzf "$extract_dir/package_fake_offical_580/app.tgz" | grep -Fx 'app/'
+
+      - name: Upload empty package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Nvidia-Driver-580.tgz
+          path: Nvidia-Driver-580.tgz
