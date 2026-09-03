@@ -77,7 +77,7 @@ jobs:
               print(f"Missing fake 580 manifest contract lines: {missing_fake_manifest_lines}")
               raise SystemExit(1)
 
-          kernels = set(re.findall(r'"(6[.]18[.]18(?:[.]c(?:788|877|938|952|1032))?-trim(?:-(?:427|570|587|717))?-amd64)"', workflow))
+          kernels = set(re.findall(r'"(6[.]18[.]18(?:[.]c(?:788|877|938|952|1032|1078))?-trim(?:-(?:427|570|587|717))?-amd64)"', workflow))
           expected_kernels = {
               "6.18.18-trim-427-amd64",
               "6.18.18-trim-570-amd64",
@@ -88,6 +88,7 @@ jobs:
               "6.18.18.c938-trim-amd64",
               "6.18.18.c952-trim-amd64",
               "6.18.18.c1032-trim-amd64",
+              "6.18.18.c1078-trim-amd64",
           }
           if kernels != expected_kernels:
               print(f"Unexpected kernel package suffixes: {sorted(kernels)}")
@@ -164,6 +165,7 @@ jobs:
               "6.18.18.c938-trim-amd64",
               "6.18.18.c952-trim-amd64",
               "6.18.18.c1032-trim-amd64",
+              "6.18.18.c1078-trim-amd64",
           ]
           selected = [driver for driver in drivers if driver["enabled"]]
           if not selected:
@@ -327,7 +329,7 @@ jobs:
           ' "$caches_file"
 
           jq -c '
-            map(select(.key | test("^ccache-6[.]18[.]18(-trim-(427|570|587|717)|[.]c(788|877|938|952|1032)-trim)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$")))
+            map(select(.key | test("^ccache-6[.]18[.]18(-trim-(427|570|587|717)|[.]c(788|877|938|952|1032|1078)-trim)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$")))
             | sort_by(.key | sub("-[0-9]+-[0-9]+$"; ""))
             | group_by(.key | sub("-[0-9]+-[0-9]+$"; ""))
             | map(sort_by(.createdAt) | reverse | .[2:][]?)
@@ -350,7 +352,7 @@ jobs:
             cache_id="$(jq -r '.id' <<< "$cache")"
             cache_key="$(jq -r '.key' <<< "$cache")"
             cache_created_at="$(jq -r '.createdAt' <<< "$cache")"
-            if ! grep -Eq '^ccache-6[.]18[.]18(-trim-(427|570|587|717)|[.]c(788|877|938|952|1032)-trim)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$' <<< "$cache_key"; then
+            if ! grep -Eq '^ccache-6[.]18[.]18(-trim-(427|570|587|717)|[.]c(788|877|938|952|1032|1078)-trim)-amd64-(${{ needs.plan_build.outputs.selected_driver_regex }})-[0-9]+-[0-9]+$' <<< "$cache_key"; then
               echo "::warning::Skip non-kernel-ccache key=$cache_key"
               continue
             fi
