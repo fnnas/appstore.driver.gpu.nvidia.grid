@@ -12,6 +12,7 @@
   nvidia-grid-kernel-src.yml
   kernel_space.yml
   user_space.yml
+  fake_official_580.yml
   nvlts.yml
   static_checks.yml
 
@@ -33,13 +34,18 @@ package_user_space/
     upgrade_init
     write_gridd_conf
 
+package_fake_offical_580/
+  manifest
+  cmd/
+    main
+
 docs/
   usage.md
   maintenance.md
   usage/
 ```
 
-两个 package 的 `cmd/common` 分别保存各自生命周期脚本复用的变量、日志函数和错误展示函数。它们会随对应 package 一起打包，不依赖另一个 package。
+两个驱动 package 的 `cmd/common` 分别保存各自生命周期脚本复用的变量、日志函数和错误展示函数。它们会随对应 package 一起打包，不依赖另一个 package。`package_fake_offical_580` 是独立的占位空包模板，不包含驱动逻辑。
 
 ## 当前支持版本
 
@@ -68,6 +74,7 @@ nvidia.ko-580.159.03-3-6.18.18.c952-trim-amd64.tgz.fpk
 nvidia.ko-580.159.03-3-6.18.18.c1032-trim-amd64.tgz.fpk
 nvidia.ko-580.159.03-3-chroot-amd64.tgz.fpk
 nvidia.user-580.159.03-3-x86.tgz.fpk
+Nvidia-Driver-580.tgz.fpk
 nvidia.ko-535.309.01-1-6.18.18-trim-427-amd64.tgz.fpk
 nvidia.ko-535.309.01-1-6.18.18-trim-570-amd64.tgz.fpk
 nvidia.ko-535.309.01-1-6.18.18-trim-587-amd64.tgz.fpk
@@ -81,7 +88,7 @@ nvidia.ko-535.309.01-1-chroot-amd64.tgz.fpk
 nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
-内核空间和用户空间复用 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
+各打包 workflow 上传到 GitHub Actions 的中间 artifact 仍是 `.tgz`。`test_release.yml` 在上传 GitHub Release 资产前，会先把下载到 `release-assets/` 的 `.tgz` 文件重命名为 `.tgz.fpk`，再执行 `gh release upload`。因此用户应从 Release 下载 `.tgz.fpk` 安装包；维护者调试 artifact 时才会直接看到 `.tgz`。
 
 预构建内核空间包包含：
 
@@ -102,6 +109,13 @@ nvidia.user-535.309.01-1-x86.tgz.fpk
 - NVLTS 文件：`app/nvlts/`，仅 `580.159.03-3` 用户空间包包含
 - 用户空间驱动包元数据和生命周期脚本：`package_user_space/`
 
+`Nvidia-Driver-580` 占位空包包含：
+
+- 空的 `app.tgz`
+- manifest、图标和空操作生命周期脚本：`package_fake_offical_580/`
+- 不包含 NVIDIA 驱动、内核模块、用户空间组件或后台服务
+- `source` 固定为 `thirdparty`，不代表 NVIDIA 或 FNOS 官方发布
+
 ## Workflow 说明
 
 ### `test_release.yml`
@@ -115,6 +129,7 @@ nvidia.user-535.309.01-1-x86.tgz.fpk
 - 调用 `nvlts.yml` 为 `580.159.03-3` 准备 NVLTS artifact
 - 调用 `kernel_space.yml` 编译内核模块并打包 `package_kernel_space`
 - 调用 `user_space.yml` 打包 `package_user_space`
+- 选择 580 驱动时调用 `fake_official_580.yml` 打包 `package_fake_offical_580`
 - 可选创建一个按发布时间命名的 GitHub prerelease，并在上传前将 `.tgz` 产物重命名为 `.tgz.fpk`
 
 开启 `make_release=true` 时，`test_release.yml` 会按北京时间生成 release 名称，例如：
@@ -233,6 +248,17 @@ nvidia.user-580.159.03-3-x86.tgz.fpk
 nvidia.user-535.309.01-1-x86.tgz.fpk
 ```
 
+### `fake_official_580.yml`
+
+负责 580 占位空包的打包：
+
+- 仅在 `build_580=true` 时由 `test_release.yml` 调用
+- 校验 manifest 使用固定内部版本 `1.0.0`、固定 `x86` platform 和 `Nvidia-Driver-580` 应用标识
+- 生成不含 `.gitkeep` 的空 `app.tgz`
+- 校验外层包只包含打包结构，不混入源码 `app/` 目录
+- 上传固定文件名 `Nvidia-Driver-580.tgz` artifact
+- 发布 Release 前由 `test_release.yml` 改名为 `Nvidia-Driver-580.tgz.fpk`
+
 ### `static_checks.yml`
 
 负责静态检查：
@@ -241,7 +267,7 @@ nvidia.user-535.309.01-1-x86.tgz.fpk
 - 检查明显乱码标记
 - 校验文档中的应用包版本与 `test_release.yml` 的 `this_pack_version` / `this_pack_nvidia_driver_version` 矩阵一致
 - 对 `scripts/patch-nvidia-grid-kernel-binary.py` 执行 `python3 -m py_compile`
-- 对 `package_kernel_space/cmd` 和 `package_user_space/cmd` 下的 shell 脚本执行 `bash -n`
+- 对 `package_kernel_space/cmd`、`package_user_space/cmd` 和 `package_fake_offical_580/cmd` 下的 shell 脚本执行 `bash -n`
 
 ## 内核空间驱动包
 
@@ -540,6 +566,8 @@ ${TRIM_TEMP_LOGFILE}
 - `this_pack_manifest_platform`
 - `this_pack_manifest_kernel`，仅内核空间包使用
 
+`package_fake_offical_580/manifest` 不使用驱动版本占位符；其内部版本固定为 `1.0.0`，`platform` 固定为 `x86`，`appname` 固定为 `Nvidia-Driver-580`。
+
 根据应用中心文档，`arch` 字段已废弃；当前只使用 `platform` 字段。`platform` 不支持多个值，当前 amd64 包声明为 `x86`。
 
 ## 更新 NVIDIA 驱动时需要同步修改
@@ -572,8 +600,8 @@ ${TRIM_TEMP_LOGFILE}
    - 同步维护矩阵中的 `manifest_platform`
 
 5. 如调整产物文件名
-   - `kernel_space.yml` 和 `user_space.yml` 中创建、上传 artifact 的文件名
-   - `test_release.yml` 的 `package_name_prefix` 和 Release 下载、改名、上传流程
+   - `kernel_space.yml`、`user_space.yml` 和 `fake_official_580.yml` 中创建、上传 artifact 的文件名
+   - `test_release.yml` release asset matrix 中的完整 `package_name` 和 Release 下载、改名、上传流程
    - README 和用户文档中的下载文件名
    - 不要仅因产物文件名变化而修改 manifest `appname`、`kernel_module_package_name` 或 `PROJ_NAME`
 
@@ -582,7 +610,8 @@ ${TRIM_TEMP_LOGFILE}
 - `appstore.driver.gpu.nvidia.grid` 是仓库名称；release title 只使用北京时间发布时间。
 - `appstore.driver.gpu.nvidia.ko` 仍用于内核空间应用包名和内核模块目录前缀。
 - `appstore.driver.gpu.nvidia.user` 用于用户空间应用包名。
-- 最终产物文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头。
+- `Nvidia-Driver-580` 是第三方占位空包应用标识，用于占位官方驱动包位置、避免依赖该标识的功能异常，不包含驱动内容。
+- 驱动产物文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头；占位空包产物固定为 `Nvidia-Driver-580.tgz[.fpk]`。
 - 内核空间和用户空间驱动版本必须一致。
 - release tag 使用发布时间，不使用 NVIDIA 驱动版本或应用包版本；同一个 release 可以包含当前矩阵中的多个 NVIDIA 驱动版本。
 - 宿主机 vGPU KVM 驱动和客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 版本组合。

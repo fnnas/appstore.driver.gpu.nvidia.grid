@@ -64,6 +64,19 @@ jobs:
               print(f"Unexpected package/driver pairs: {sorted(pairs)}")
               raise SystemExit(1)
 
+          fake_manifest = Path("package_fake_offical_580/manifest").read_text(encoding="utf-8")
+          fake_manifest_contract = {
+              'version="1.0.0"',
+              'appname="Nvidia-Driver-580"',
+              'platform="x86"',
+          }
+          missing_fake_manifest_lines = sorted(
+              fake_manifest_contract.difference(fake_manifest.splitlines())
+          )
+          if missing_fake_manifest_lines:
+              print(f"Missing fake 580 manifest contract lines: {missing_fake_manifest_lines}")
+              raise SystemExit(1)
+
           kernels = set(re.findall(r'"(6[.]18[.]18(?:[.]c(?:788|877|938|952|1032))?-trim(?:-(?:427|570|587|717))?-amd64)"', workflow))
           expected_kernels = {
               "6.18.18-trim-427-amd64",
@@ -79,21 +92,19 @@ jobs:
           if kernels != expected_kernels:
               print(f"Unexpected kernel package suffixes: {sorted(kernels)}")
               raise SystemExit(1)
-          chroot_assets = re.findall(
-              r'^\s+"package_name_suffix": "chroot-amd64",$',
+          release_asset_templates = set(re.findall(
+              r'^\s+"package_name": (.+),$',
               workflow,
               flags=re.M,
-          )
-          if len(chroot_assets) != 1:
-              print("Expected exactly one chroot-amd64 release asset definition")
-              raise SystemExit(1)
-          package_prefixes = re.findall(
-              r'^\s+"package_name_prefix": "([^"]+)",$',
-              workflow,
-              flags=re.M,
-          )
-          if sorted(package_prefixes) != ["nvidia.ko", "nvidia.ko", "nvidia.user"]:
-              print(f"Unexpected release asset prefixes: {package_prefixes}")
+          ))
+          expected_release_asset_templates = {
+              'f"nvidia.ko-{driver[\'this_pack_version\']}-{kernel}.tgz"',
+              'f"nvidia.ko-{driver[\'this_pack_version\']}-chroot-amd64.tgz"',
+              'f"nvidia.user-{driver[\'this_pack_version\']}-x86.tgz"',
+              '"Nvidia-Driver-580.tgz"',
+          }
+          if release_asset_templates != expected_release_asset_templates:
+              print(f"Unexpected release asset templates: {sorted(release_asset_templates)}")
               raise SystemExit(1)
           PY
 
@@ -186,20 +197,18 @@ jobs:
           for driver in selected:
               for kernel in kernels:
                   release_assets_matrix.append({
-                      "this_pack_version": driver["this_pack_version"],
-                      "package_name_prefix": "nvidia.ko",
-                      "package_name_suffix": kernel,
+                      "package_name": f"nvidia.ko-{driver['this_pack_version']}-{kernel}.tgz",
                   })
               release_assets_matrix.append({
-                  "this_pack_version": driver["this_pack_version"],
-                  "package_name_prefix": "nvidia.ko",
-                  "package_name_suffix": "chroot-amd64",
+                  "package_name": f"nvidia.ko-{driver['this_pack_version']}-chroot-amd64.tgz",
               })
               release_assets_matrix.append({
-                  "this_pack_version": driver["this_pack_version"],
-                  "package_name_prefix": "nvidia.user",
-                  "package_name_suffix": "x86",
+                  "package_name": f"nvidia.user-{driver['this_pack_version']}-x86.tgz",
               })
+              if driver["this_pack_nvidia_driver_version"].startswith("580."):
+                  release_assets_matrix.append({
+                      "package_name": "Nvidia-Driver-580.tgz",
+                  })
 
           selected_versions = [
               driver["this_pack_nvidia_driver_version"]
@@ -229,6 +238,12 @@ jobs:
           print(f"Build 580.159.03: {outputs['build_580']}")
           print(f"Build 535.309.01: {outputs['build_535']}")
           PY
+
+  package_fake_official_580:
+    if: ${{ needs.plan_build.outputs.build_580 == 'true' }}
+    needs:
+      - plan_build
+    uses: ./.github/workflows/fake_official_580.yml
 
   prepare_driver_package:
     uses: ./.github/workflows/nvidia-grid-kernel-src.yml
@@ -373,8 +388,9 @@ jobs:
       manifest_platform: x86
 
   create_release:
-    if: ${{ always() && inputs.make_release && needs.package_kernel_space.result == 'success' && needs.package_user_space.result == 'success' }}
+    if: ${{ always() && inputs.make_release && needs.package_kernel_space.result == 'success' && needs.package_user_space.result == 'success' && ((needs.plan_build.outputs.build_580 == 'true' && needs.package_fake_official_580.result == 'success') || (needs.plan_build.outputs.build_580 == 'false' && needs.package_fake_official_580.result == 'skipped')) }}
     needs:
+      - package_fake_official_580
       - package_kernel_space
       - package_user_space
       - plan_build
@@ -404,6 +420,7 @@ jobs:
           Build commit: ${{ github.sha }}
           Build ref: ${{ github.ref_name }}
           Build 580.159.03: ${{ needs.plan_build.outputs.build_580 }}
+          Build Nvidia-Driver-580 placeholder: ${{ needs.plan_build.outputs.build_580 }}
           Build 535.309.01: ${{ needs.plan_build.outputs.build_535 }}
           Selected NVIDIA drivers: ${{ needs.plan_build.outputs.selected_driver_summary }}
           EOF
@@ -437,13 +454,13 @@ jobs:
       - name: Download package
         uses: actions/download-artifact@v7
         with:
-          name: ${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz
+          name: ${{ matrix.package_name }}
           path: release-assets/
 
       - name: Rename package extension to fpk
         run: |
           set -euo pipefail
-          package_name="${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz"
+          package_name="${{ matrix.package_name }}"
           fpk_name="${package_name}.fpk"
           echo "Renaming ${package_name} to ${fpk_name}"
           mv "release-assets/${package_name}" "release-assets/${fpk_name}"
@@ -453,7 +470,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploading release assets..."
-          package_name="${{ matrix.package_name_prefix }}-${{ matrix.this_pack_version }}-${{ matrix.package_name_suffix }}.tgz.fpk"
+          package_name="${{ matrix.package_name }}.fpk"
           echo "Uploading ${package_name}"
           gh release upload "${{ needs.create_release.outputs.release_tag }}" "release-assets/${package_name}" --repo "${GITHUB_REPOSITORY}" --clobber
           echo "Upload completed!"

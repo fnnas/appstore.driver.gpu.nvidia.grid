@@ -26,6 +26,7 @@ __pycache__/
 /*.tgz
 /package_kernel_space/app.tgz
 /package_user_space/app.tgz
+/package_fake_offical_580/app.tgz
 
 # CI staging directories; keep placeholders tracked
 /app/app/*

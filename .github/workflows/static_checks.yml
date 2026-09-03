@@ -27,6 +27,7 @@ jobs:
               Path("CLAUDE.md"),
               Path("package_kernel_space/manifest"),
               Path("package_user_space/manifest"),
+              Path("package_fake_offical_580/manifest"),
               Path("scripts/patch-nvidia-grid-kernel-binary.py"),
           ]
 
@@ -75,6 +76,7 @@ jobs:
               Path("docs/maintenance.md"),
               Path("CLAUDE.md"),
               Path(".github/workflows/test_release.yml"),
+              Path("package_fake_offical_580/manifest"),
           ]
 
           failed = False
@@ -105,6 +107,9 @@ jobs:
               Path(".github/workflows/user_space.yml"): {
                   "nvidia.user-" + expression_open + " inputs.this_pack_version }}-" + expression_open + " inputs.manifest_platform }}.tgz": 3,
               },
+              Path(".github/workflows/fake_official_580.yml"): {
+                  "Nvidia-Driver-580.tgz": 4,
+              },
           }
           failed = False
           for path, expected_names in contracts.items():
@@ -116,13 +121,23 @@ jobs:
                       failed = True
 
           release_workflow = Path(".github/workflows/test_release.yml").read_text(encoding="utf-8")
-          prefixes = re.findall(
-              r'^\s+"package_name_prefix": "([^"]+)",$',
+          release_asset_templates = set(re.findall(
+              r'^\s+"package_name": (.+),$',
               release_workflow,
               flags=re.M,
-          )
-          if sorted(prefixes) != ["nvidia.ko", "nvidia.ko", "nvidia.user"]:
-              print(f"Unexpected release asset prefixes: {prefixes}")
+          ))
+          expected_release_asset_templates = {
+              'f"nvidia.ko-{driver[\'this_pack_version\']}-{kernel}.tgz"',
+              'f"nvidia.ko-{driver[\'this_pack_version\']}-chroot-amd64.tgz"',
+              'f"nvidia.user-{driver[\'this_pack_version\']}-x86.tgz"',
+              '"Nvidia-Driver-580.tgz"',
+          }
+          if release_asset_templates != expected_release_asset_templates:
+              print(f"Unexpected release asset templates: {sorted(release_asset_templates)}")
+              failed = True
+          matrix_package_name = expression_open + " matrix.package_name }}"
+          if release_workflow.count(matrix_package_name) != 3:
+              print("Release download, rename, and upload must use matrix.package_name")
               failed = True
           title_arg = '--title "' + expression_open + ' steps.vars.outputs.release_title }}"'
           if release_workflow.count(title_arg) != 2:
@@ -135,6 +150,7 @@ jobs:
           checked_paths = [
               Path(".github/workflows/kernel_space.yml"),
               Path(".github/workflows/user_space.yml"),
+              Path(".github/workflows/fake_official_580.yml"),
               Path(".github/workflows/AGENTS.md"),
               Path("readme.md"),
               Path("docs/usage.md"),
@@ -155,7 +171,7 @@ jobs:
 
       - name: Check shell syntax
         run: |
-          find package_kernel_space/cmd package_user_space/cmd -maxdepth 1 -type f -print0 |
+          find package_kernel_space/cmd package_user_space/cmd package_fake_offical_580/cmd -maxdepth 1 -type f -print0 |
             while IFS= read -r -d '' file; do
               first_line="$(head -n 1 "$file")"
               if [ "$first_line" = "#!/bin/bash" ] || [ "$first_line" = "#!/bin/sh" ]; then

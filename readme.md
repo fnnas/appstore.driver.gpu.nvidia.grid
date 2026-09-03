@@ -2,12 +2,13 @@
 
 这是一个面向 FNOS / 飞牛 NAS vGPU 场景的 NVIDIA GRID 驱动应用包项目。
 
-项目提供两个应用包：
+项目提供两个驱动应用包，以及一个仅随 580 版本构建的可选占位空包：
 
 - `appstore.driver.gpu.nvidia.ko`：内核空间驱动包，负责安装 NVIDIA kernel module 和 firmware。
 - `appstore.driver.gpu.nvidia.user`：用户空间驱动包，负责安装 NVIDIA 用户空间库、`nvidia-smi`、`nvidia-gridd` 和 NVLTS。
+- `Nvidia-Driver-580`：用于占位官方驱动应用标识、避免依赖该标识的功能异常；不包含 NVIDIA 驱动、内核模块、用户空间组件或后台服务。
 
-Release 下载文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头；上述 `appstore.driver.gpu.*` 名称是安装后使用的 FNOS 应用标识。
+驱动包的 Release 下载文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头，占位包固定为 `Nvidia-Driver-580.tgz.fpk`；上述应用名称是各包安装后使用的 FNOS 应用标识。
 
 ## 当前支持版本
 
@@ -31,6 +32,8 @@ Release 下载文件名分别以 `nvidia.ko-` 和 `nvidia.user-` 开头；上述
 
 1. 一个内核空间驱动包。优先根据 FNOS 内核版本选择预构建包；没有匹配的预构建包时可选择同驱动版本的 `chroot-amd64` 源码包。
 2. 一个同版本用户空间驱动包，例如 `nvidia.user-580.159.03-3-x86.tgz.fpk`。
+
+580 Release 还会提供固定文件名 `Nvidia-Driver-580.tgz.fpk`。它用于占位官方驱动应用标识、避免依赖该标识的功能异常，与 NVIDIA 驱动版本无关，也不能替代上述两个驱动包。
 
 内核驱动包选择规则：先确认 `uname -r`。旧 `6.18.18-trim` 因为同一内核名下存在多组 build，需要再按 build number 选择 `427`、`570`、`587` 或 `717` 包。其他带构建号的完整内核名直接按 `uname -r` 选择，例如 `6.18.18.c1032-trim` 选择 `6.18.18.c1032-trim-amd64` 包。没有对应预构建包时，可改用 `chroot-amd64` 源码包。
 
@@ -94,6 +97,7 @@ uname -a
 
 - 宿主机 vGPU KVM 驱动和 FNOS 客户机 GRID 驱动必须来自匹配的 NVIDIA vGPU 驱动版本组合。
 - 本项目驱动与飞牛官方应用中心的 NVIDIA 驱动冲突，不要同时安装或启用。
+- `Nvidia-Driver-580` 占位空包是本项目生成的第三方包，不代表 NVIDIA 或 FNOS 官方发布。
 - 内核空间驱动和用户空间驱动版本必须一致，不能混装 `580.159.03` 和 `535.309.01`。
 - chroot 编译失败或中断后会保留 `/tmp/appstore.driver.gpu.nvidia.ko-chroot-build.failed`，避免启动时反复编译；重启、手动删除该文件、更新或卸载内核包后才会允许重试。
 - 安装会修改内核模块 alternatives、firmware、nouveau blacklist、initramfs 和 NVIDIA 用户空间库，安装前请务必创建虚拟机快照。
