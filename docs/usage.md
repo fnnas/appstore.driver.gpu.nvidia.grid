@@ -106,13 +106,14 @@ Linux GreenDamTan 6.18.18.c1032-trim #1032 SMP PREEMPT_DYNAMIC Fri Aug 21 01:49:
 Linux GreenDamTan 6.18.18.c1078-trim #1078 SMP PREEMPT_DYNAMIC Wed Sep  2 10:09:59 UTC 2026 x86_64 GNU/Linux
 Linux GreenDamTan 6.18.18.c1126-trim #1126 SMP PREEMPT_DYNAMIC Wed Sep 16 02:05:34 UTC 2026 x86_64 GNU/Linux
 Linux GreenDamTan 6.18.18.c1168-trim #1168 SMP PREEMPT_DYNAMIC Tue Oct 13 11:20:25 UTC 2026 x86_64 GNU/Linux
+Linux GreenDamTan 6.18.18.c1179-trim #1179 SMP PREEMPT_DYNAMIC Wed Oct 28 09:30:15 UTC 2026 x86_64 GNU/Linux
 ```
 
 ![查看 FNOS 内核版本](usage/5_check_fnos_kernel_version.png)
 
 需要关注两部分：
 
-- 内核版本：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`、`6.18.18.c1032-trim`、`6.18.18.c1078-trim`、`6.18.18.c1126-trim` 或 `6.18.18.c1168-trim`
+- 内核版本：`6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`、`6.18.18.c1032-trim`、`6.18.18.c1078-trim`、`6.18.18.c1126-trim`、`6.18.18.c1168-trim` 或 `6.18.18.c1179-trim`
 - build number：`#473`。只有旧 `6.18.18-trim` 需要用它选择分组包。
 
 旧 `6.18.18-trim` 因为同一内核名下有多组 build，需要按 build number 选择 `427`、`570`、`587` 或 `717` 包。`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`、`6.18.18.c1032-trim`、`6.18.18.c1078-trim`、`6.18.18.c1126-trim`、`6.18.18.c1168-trim` 这类带构建号的完整内核名直接按 `uname -r` 选择对应包，例如 `6.18.18.c1168-trim-amd64`。后续如果系统显示其他完整内核名，应优先下载与 `uname -r` 对应的预构建包；没有对应预构建包时可以使用 `chroot-amd64` 源码包。
@@ -133,6 +134,7 @@ Linux GreenDamTan 6.18.18.c1168-trim #1168 SMP PREEMPT_DYNAMIC Tue Oct 13 11:20:
 | `#1078` 且内核为 `6.18.18.c1078-trim` | `nvidia.ko-580.159.03-3-6.18.18.c1078-trim-amd64.tgz.fpk` |
 | `#1126` 且内核为 `6.18.18.c1126-trim` | `nvidia.ko-580.159.03-3-6.18.18.c1126-trim-amd64.tgz.fpk` |
 | `#1168` 且内核为 `6.18.18.c1168-trim` | `nvidia.ko-580.159.03-3-6.18.18.c1168-trim-amd64.tgz.fpk` |
+| `#1179` 且内核为 `6.18.18.c1179-trim` | `nvidia.ko-580.159.03-3-6.18.18.c1179-trim-amd64.tgz.fpk` |
 
 如果选择 `535.309.01`，内核包选择规则同上，只把包名中的应用包版本替换为 `535.309.01-1`：
 
@@ -150,6 +152,7 @@ Linux GreenDamTan 6.18.18.c1168-trim #1168 SMP PREEMPT_DYNAMIC Tue Oct 13 11:20:
 | `#1078` 且内核为 `6.18.18.c1078-trim` | `nvidia.ko-535.309.01-1-6.18.18.c1078-trim-amd64.tgz.fpk` |
 | `#1126` 且内核为 `6.18.18.c1126-trim` | `nvidia.ko-535.309.01-1-6.18.18.c1126-trim-amd64.tgz.fpk` |
 | `#1168` 且内核为 `6.18.18.c1168-trim` | `nvidia.ko-535.309.01-1-6.18.18.c1168-trim-amd64.tgz.fpk` |
+| `#1179` 且内核为 `6.18.18.c1179-trim` | `nvidia.ko-535.309.01-1-6.18.18.c1179-trim-amd64.tgz.fpk` |
 
 每个驱动版本还会发布一个只包含 NVIDIA kernel source 和 firmware、不包含预构建 `.ko` 的源码包：
 
@@ -214,6 +217,12 @@ nvidia.ko-580.159.03-3-6.18.18.c1126-trim-amd64.tgz.fpk
 
 ```text
 nvidia.ko-580.159.03-3-6.18.18.c1168-trim-amd64.tgz.fpk
+```
+
+如果系统是 `6.18.18.c1179-trim #1179`，应选择 `6.18.18.c1179-trim-amd64` 包：
+
+```text
+nvidia.ko-580.159.03-3-6.18.18.c1179-trim-amd64.tgz.fpk
 ```
 
 用户空间驱动包固定下载：

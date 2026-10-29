@@ -16,6 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 当前支持的驱动组合包括 GRID 19.5 / `580.159.03` / `580.159.03-3`，以及 GRID 16.14 / `535.309.01` / `535.309.01-1`。当前已构建 FNOS/TRIM 内核包包括 `6.18.18-trim`、`6.18.18.c788-trim`、`6.18.18.c877-trim`、`6.18.18.c938-trim`、`6.18.18.c952-trim`、`6.18.18.c1032-trim`、`6.18.18.c1078-trim`、`6.18.18.c1126-trim` 和 `6.18.18.c1168-trim`。旧 `6.18.18-trim` 按 build number 分组；其他内核版本运行时直接映射到 `<uname -r>-<arch>` 包内模块目录。每个驱动版本还发布一个不含预构建 `.ko` 的 `chroot-amd64` 源码包，用于本机编译当前内核模块。应用包版本中的 `-1`、`-2` 是同一 NVIDIA 驱动版本下的应用包发布修订号，不代表 NVIDIA 驱动版本变化。
 
+当前构建矩阵还包括 `6.18.18.c1179-trim-amd64`，对应内核 `6.18.18.c1179-trim`。
+
 ## 常用命令
 
 这个仓库没有 package manager 配置，也没有常规本地测试框架。权威静态检查来自 `.github/workflows/static_checks.yml`。在 Windows/Git Bash 环境中，如果 `python3` 不在 `PATH` 上，可以改用 `python`；如果未限定路径的 `find` 解析成 Windows `FIND.EXE`，请改用 `/usr/bin/find`。
