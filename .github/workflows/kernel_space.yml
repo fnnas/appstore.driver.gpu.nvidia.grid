@@ -32,7 +32,7 @@ on:
 
 jobs:
   build_and_pack:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -240,7 +240,7 @@ jobs:
           path: nvidia.ko-${{ inputs.this_pack_version }}-${{ env.kernel_name }}.tgz
 
   pack_chroot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6

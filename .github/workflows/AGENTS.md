@@ -40,6 +40,7 @@ test_release.yml
 
 ## CONVENTIONS
 
+- workflow 的宿主 runner 固定为 `ubuntu-24.04`，避免浮动标签自动迁移系统版本。
 - `this_pack_version` 是应用包版本，例如 `580.159.03-3`。
 - `this_pack_nvidia_driver_version` 是 NVIDIA 驱动版本，例如 `580.159.03`。
 - `this_pack_grid_run` 必须和下载 URL 最终文件名、用户空间 `cmd/common` 渲染结果一致。

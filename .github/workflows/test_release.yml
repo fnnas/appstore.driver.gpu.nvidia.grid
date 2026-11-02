@@ -39,7 +39,7 @@ env:
 
 jobs:
   validate_version_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6
@@ -114,7 +114,7 @@ jobs:
           PY
 
   plan_build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - validate_version_matrix
     outputs:
@@ -307,7 +307,7 @@ jobs:
     needs:
       - package_kernel_space
       - plan_build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
     steps:
@@ -404,7 +404,7 @@ jobs:
       - package_kernel_space
       - package_user_space
       - plan_build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       release_tag: ${{ steps.vars.outputs.release_tag }}
       release_title: ${{ steps.vars.outputs.release_title }}
@@ -456,7 +456,7 @@ jobs:
     needs:
       - create_release
       - plan_build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.plan_build.outputs.release_assets_matrix) }}
@@ -490,7 +490,7 @@ jobs:
     needs:
       - upload_release_assets
       - create_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Verify Uploaded Assets
         env:
